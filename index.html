@@ -30,24 +30,23 @@ function home(){A.innerHTML=`<h1>🎧 BUZZ · Blind Test</h1><div class="card"><
 /* ================= HOST ================= */
 let LOADED=Promise.resolve(),mode=localStorage.getItem('bt_mode')||'api',peer,conns={},code,g,yt,ytReady=false,tm,maxD=20,yv='',tab='g',testing=false;
 function onYouTubeIframeAPIReady(){ytReady=true}
-function host(){code=Math.random().toString(36).slice(2,6).toUpperCase();g={phase:'idle',buzz:[],active:-1,scores:{},cur:null,j:{},reveal:null,msg:'Prêt.',played:[]};
+function host(){code=Math.random().toString(36).slice(2,6).toUpperCase();g={phase:'idle',buzz:[],active:-1,scores:{},cur:null,j:{},reveal:null,msg:'Clique sur « Nouvelle partie » pour commencer.',played:[]};
 peer=new Peer('bt-'+code);peer.on('error',x=>{if(x.type=='unavailable-id')host();else msg('Réseau : '+x.type)});
 peer.on('connection',c=>{c.on('data',m=>{if(m.t=='join'){let n=(m.name||'?').slice(0,16),k=n,i=2;while(conns[k])k=n+i++;c.n=k;conns[k]=c;g.scores[k]??=0;c.send({t:'me',name:k});upd()}
-if(m.t=='buzz'&&g.phase=='play'&&c.n&&!g.buzz.includes(c.n)){g.buzz.push(c.n);if(g.buzz.length>=Object.keys(conns).length)stop();else upd()}});
+if(m.t=='buzz'&&c.n&&!g.buzz.includes(c.n)){if(g.phase=='play'){pauseBy(c.n)}else if(g.phase=='judge'){g.buzz.push(c.n);upd()}else if(g.phase=='wait'){rmIframe();g.buzz.push(c.n);g.active=g.buzz.length-1;g.j={};g.phase='judge';g.msg='🎤 Au tour de '+c.n;upd()}}});
 c.on('close',()=>{delete conns[c.n];upd()})});hostUI()}
 function hostUI(){yt=null;const link=location.href.split('#')[0]+'#'+code;
 A.innerHTML=`<div class="row" style="margin-bottom:12px"><button class="${tab=='g'?'p':''}" onclick="tab='g';hostUI()">🎮 Jeu</button><button class="${tab=='b'?'p':''}" onclick="tab='b';hostUI()">📚 Base (${DB.length})</button></div>`+(tab=='g'?`
 <div class="card"><h3>Code : ${code}</h3><p class="m">Les joueurs ouvrent ce lien ou scannent :<br><b>${e(link)}</b></p><img src="${qr(link)}" width="130"><p class="m" id="np"></p></div>
 <div class="card"><label class="m">Durée max (secondes)</label><input type="number" value="${maxD}" min="5" max="300" oninput="maxD=+this.value||20">
-<div class="row" style="margin-top:8px"><button onclick="arm()">🎲 Autre titre</button><button class="d" onclick="stop()">⏹ Stop</button></div></div>
+<div class="row" style="margin-top:8px"><button class="p" onclick="nouvelle()">🆕 Nouvelle partie</button><button class="d" onclick="stopBtn()">⏹ Stop</button></div></div>
 <div class="card"><div id="ytw" style="margin-top:8px"><div>🎵</div><span id="yt"></span></div></div>
 <div class="card" id="pn"></div><div class="card"><h3>Classement</h3><div id="lb"></div></div>`:`
 <div class="card"><h3>Ajouter un titre</h3><input id="fu" placeholder="Lien YouTube"><div class="row"><input id="fa" placeholder="Artiste"><input id="ft" placeholder="Titre"></div><input id="fy" type="number" placeholder="Année">
 <button class="p" style="margin-top:6px" onclick="add()">+ Ajouter</button><p class="m" id="fm"></p></div>
 <div class="card"><h3>Coller une liste</h3><p class="m">Une ligne par titre : lien ; artiste ; titre ; année</p><textarea id="bl" rows="5" style="width:100%;background:#171329;color:#f3efe8;border:1px solid #352d54;border-radius:10px;padding:10px"></textarea><button class="p" style="margin-top:6px" onclick="bulk()">Importer</button><p class="m" id="bm"></p></div>
 <div class="card"><div class="row"><button onclick="exp()">⬇️ Exporter</button><label><button onclick="$('imp').click()" style="width:100%">⬆️ Importer</button></label></div><input id="imp" type="file" accept=".json" hidden onchange="imp(this)"></div>
-<div class="card">${DB.map((t,i)=>`<div class="ld"><span>${e(t.artist)} — ${e(t.title)} (${t.year})</span><span><button class="g" onclick="pick(${i})">▶</button> <button class="g" onclick="del(${i})">✕</button></span></div>`).join('')||'<p class="m">Base vide.</p>'}</div>`);if(tab=='g'){upd();LOADED.then(autoArm)}}
-function autoArm(){try{if(tab=='g'&&$('ytw')&&(g.phase=='idle'||(g.phase=='ready'&&!$('sf'))))arm(g.phase=='ready'?g.next:null)}catch(x){g.msg='⚠️ '+x.message;upd()}}
+<div class="card">${DB.map((t,i)=>`<div class="ld"><span>${e(t.artist)} — ${e(t.title)} (${t.year})</span><span><button class="g" onclick="pick(${i})">▶</button> <button class="g" onclick="del(${i})">✕</button></span></div>`).join('')||'<p class="m">Base vide.</p>'}</div>`);if(tab=='g'){upd();if(g.phase=='ready')arm(g.next);else if(g.phase=='wait')mk(g.cur,g.pos,resume)}}
 function msg(s){g.msg=s;upd()}
 function add(){const v=vid($('fu').value),a=$('fa').value.trim(),t=$('ft').value.trim(),y=+$('fy').value;if(!v||!a||!t||!y){$('fm').textContent='⚠️ Lien YouTube valide, artiste, titre et année requis.';return}
 if(DB.some(d=>d.id==v)){$('fm').textContent='Ce titre est déjà dans la base.';return}DB.push({id:v,vid:v,artist:a,title:t,year:y});save();hostUI()}
@@ -57,14 +56,26 @@ function exp(){const b=new Blob([JSON.stringify(DB)],{type:'application/json'}),
 function imp(i){const f=i.files[0];if(!f)return;f.text().then(x=>{try{DB=DB.concat(JSON.parse(x).filter(t=>t.vid&&!DB.some(d=>d.id==t.id)));save();hostUI()}catch(_){alert('Fichier invalide')}})}
 /* lecture : le carré noir est le bouton de lancement */
 let BL;
-function pickRnd(){let p=DB.filter(x=>!g.played.includes(x.id));if(!p.length){g.played=[];p=DB}return p[Math.random()*p.length|0]}
-function arm(t){if(!['idle','ready','done'].includes(g.phase))return;clearTimeout(tm);const o=$('sf');if(o)o.remove();
-if(!DB.length){g.phase='idle';g.msg="Ajoute des titres dans l'onglet Base.";upd();return}
-t=t||pickRnd();g.next=t;g.phase='ready';g.msg='👆 Prêt : touche le carré noir pour lancer la musique';upd();
-const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow='autoplay';f.style.border=0;f.src='https://www.yout-ube.com/watch?v='+t.vid+'&autoplay=1';
-if(BL)window.removeEventListener('blur',BL);BL=()=>setTimeout(()=>{if(document.activeElement===f)go()},0);window.addEventListener('blur',BL);$('ytw').appendChild(f)}
-function go(){if(g.phase!='ready'||!g.next)return;if(BL)window.removeEventListener('blur',BL);g.cur=g.next;g.played.push(g.cur.id);g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.phase='play';g.msg='🎧 Buzz !';upd();tm=setTimeout(stop,maxD*1000)}
-function stop(){clearTimeout(tm);if(g.phase=='play'){const o=$('sf');if(o)o.remove();g.phase=g.buzz.length?'judge':'done';g.active=g.buzz.length?0:-1;g.msg=g.buzz.length?'🎤 Au tour de '+g.buzz[0]:"Personne n'a buzzé."}upd()}
+function rmIframe(){const o=$('sf');if(o)o.remove()}
+function mk(t,pos,cb){rmIframe();if(BL)window.removeEventListener('blur',BL);const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow='autoplay';f.style.border=0;
+f.src='https://www.yout-ube.com/watch?v='+t.vid+(pos>1?'&t='+Math.floor(pos)+'s':'')+'&autoplay=1';
+BL=()=>setTimeout(()=>{if(document.activeElement===f)cb()},0);window.addEventListener('blur',BL);$('ytw').appendChild(f)}
+function pickRnd(){let p=DB.filter(x=>!g.played.includes(x.id)&&x!==g.next);if(!p.length){g.played=[];p=DB.filter(x=>x!==g.next);if(!p.length)p=DB}return p[Math.random()*p.length|0]}
+function arm(t){if(!['idle','ready','done'].includes(g.phase))return;clearTimeout(tm);
+if(!DB.length){rmIframe();g.phase='idle';g.msg="Ajoute des titres dans l'onglet Base.";upd();return}
+t=t||pickRnd();g.next=t;g.phase='ready';g.msg='👆 Prêt : touche le carré noir pour lancer la musique';upd();mk(t,0,go)}
+function go(){if(g.phase!='ready'||!g.next)return;if(BL)window.removeEventListener('blur',BL);g.cur=g.next;g.played.push(g.cur.id);g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.phase='play';g.msg='🎧 Buzz !';g.rem=maxD*1000;g.pos=0;g.t1=Date.now();upd();tm=setTimeout(endRound,g.rem)}
+function pauseBy(n){clearTimeout(tm);const el=Date.now()-g.t1;g.rem-=el;g.pos+=el/1000;rmIframe();g.buzz.push(n);g.active=g.buzz.length-1;g.j={};g.phase='judge';g.msg='🎤 Au tour de '+n;upd()}
+function resume(){if(g.phase!='wait')return;if(BL)window.removeEventListener('blur',BL);g.phase='play';g.msg='🎧 Buzz !';g.t1=Date.now();upd();tm=setTimeout(endRound,g.rem)}
+function endRound(){clearTimeout(tm);rmIframe();if(g.cur&&g.phase=='play')rev()}
+function wrong(){if(g.active+1<g.buzz.length){g.active++;g.j={};g.msg='🎤 Au tour de '+g.buzz[g.active];upd();return}
+if(g.buzz.length>=Object.keys(conns).length||g.rem<=500){rev();return}
+g.phase='wait';g.msg='👆 Touche le carré noir pour reprendre la musique';upd();mk(g.cur,g.pos,resume)}
+function yearEnd(){const b=g.buzz[g.active];if(b&&yv&&g.cur){const d=Math.abs(+yv-g.cur.year);g.scores[b]=(g.scores[b]||0)+(d==0?2:d<=3?1:0)}yv='';rev()}
+function nouvelle(){if(Object.values(g.scores).some(v=>v>0)&&!confirm('Remettre les scores à zéro et démarrer une nouvelle partie ?'))return;
+clearTimeout(tm);const o=$('sf');if(o)o.remove();Object.keys(g.scores).forEach(k=>g.scores[k]=0);g.played=[];g.next=null;g.cur=null;g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.phase='idle';arm()}
+function stopBtn(){clearTimeout(tm);const o=$('sf');if(o)o.remove();if(g.phase=='idle')return;if(g.phase=='ready'){arm();return}rev()}
+function refuse(){if(g.active+1<g.buzz.length)nxt();else rev()}
 function pick(i){tab='g';hostUI();arm(DB[i])}
 function judge(k){const n=g.buzz[g.active];if(!n)return;const s=p=>g.scores[n]=(g.scores[n]||0)+p;
 if(k=='a'&&!g.j.a){s(1);g.j.a=1}if(k=='t'&&!g.j.t){s(1);g.j.t=1}
@@ -72,12 +83,13 @@ if(k=='y'&&!g.j.y&&yv){const d=Math.abs(+yv-g.cur.year);s(d==0?2:d<=3?1:0);g.j.y
 function nxt(){if(g.active+1<g.buzz.length){g.active++;g.j={};g.msg='🎤 Au tour de '+g.buzz[g.active]}else g.phase='done';upd()}
 function rev(){const t=g.cur;g.reveal={a:t.artist,t:t.title,y:t.year};g.phase='done';arm()}
 function bz(){return g.buzz.length?`<ul>${g.buzz.map((n,i)=>`<li class="${g.phase=='judge'&&i==g.active?'on':''}">${i+1}. ${e(n)}</li>`).join('')}</ul>`:'<p class="m">Aucun buzz.</p>'}
-function upd(){const st={phase:g.phase,buzz:g.buzz,active:g.active,scores:g.scores,msg:g.phase=='ready'?'⏳ Prépare-toi, le prochain titre arrive…':g.msg,reveal:g.reveal};Object.values(conns).forEach(c=>c.open&&c.send({t:'s',s:st}));
+function upd(){const st={phase:g.phase,buzz:g.buzz,active:g.active,scores:g.scores,msg:g.phase=='ready'?'⏳ Prépare-toi, le prochain titre arrive…':g.phase=='wait'?'⏸ Musique en pause…':g.msg,reveal:g.reveal};Object.values(conns).forEach(c=>c.open&&c.send({t:'s',s:st}));
 if(!$('pn'))return;$('np').textContent=Object.keys(conns).length+' joueur(s) connecté(s)';
 let h=`<div class="m">${e(g.msg)}</div>`+(g.phase=='ready'?'<button class="p" style="margin:6px 0" onclick="go()">🔓 Lancer / débloquer les buzzers</button>':'')+(g.cur&&g.phase!='idle'?`<div class="big">🎵 ${e(g.cur.artist)} — ${e(g.cur.title)} (${g.cur.year})</div>`:'')+bz();
 if(g.phase=='judge'){h+=`<div class="big" style="margin:10px 0">🎤 ${e(g.buzz[g.active])}</div><div class="row"><button ${g.j.a?'disabled':''} onclick="judge('a')">✅ Artiste +1</button><button ${g.j.t?'disabled':''} onclick="judge('t')">✅ Titre +1</button></div>
-<div class="row" style="margin-top:8px"><input type="number" placeholder="Année annoncée" value="${yv}" oninput="yv=this.value"><button ${g.j.y?'disabled':''} onclick="judge('y')">Valider année</button></div>
-<div class="row" style="margin-top:8px"><button class="g" onclick="nxt()">➡️ Buzzer suivant</button><button class="p" onclick="rev()">✔️ Terminer</button></div>`}
+<div class="row" style="margin-top:8px"><input type="number" placeholder="Année annoncée" value="${yv}" oninput="yv=this.value"><button class="p" onclick="yearEnd()">Valider l'année et suivant</button></div>
+<div class="row" style="margin-top:8px"><button class="d" onclick="wrong()">❌ Mauvaise réponse</button><button onclick="rev()">✔️ Terminer sans année</button></div>`}
+if(g.phase=='wait')h+=`<p class="m">Musique en pause. Les joueurs peuvent encore buzzer.</p><button onclick="resume()">▶ Reprendre (bouton de secours)</button>`;
 if(g.phase=='done')h+=`<button style="margin-top:8px" onclick="rev()">👁 Révéler</button>`;$('pn').innerHTML=h;
 $('lb').innerHTML=Object.entries(g.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')||'<p class="m">—</p>'}
 /* ================= PLAYER ================= */
@@ -88,8 +100,8 @@ peer=new Peer();peer.on('error',()=>$('jm')&&($('jm').textContent='❌ Connexion
 pc.on('open',()=>pc.send({t:'join',name:n}));pc.on('data',m=>{if(m.t=='me')me=m.name;if(m.t=='s'){S=m.s;pui()}});pc.on('close',()=>{A.innerHTML='<div class="card">Connexion perdue. Recharge la page.</div>'})})}
 function buzz(){pc.send({t:'buzz'});this.disabled=true}
 function pui(){if(!S)return;const b=S.buzz.includes(me);let m='';
-if(S.phase=='play')m=`<button class="buzz" onclick="buzz.call(this)" ${b?'disabled':''}>${b?'✋ Buzzé !':'🔴 BUZZ'}</button>`;
-else if(S.phase=='judge'){const c=S.buzz[S.active];m=`<p class="big">${c==me?'🎤 À toi de répondre !':'Écoute, '+e(c)+' répond.'}</p>`}
+if(S.phase=='play'||S.phase=='wait')m=`<button class="buzz" onclick="buzz.call(this)" ${b?'disabled':''}>${b?'✋ Buzzé !':'🔴 BUZZ'}</button>`;
+else if(S.phase=='judge'){const c=S.buzz[S.active];m=(c==me?'<p class="big">🎤 À toi de répondre !</p>':`<p class="big">Écoute, ${e(c)} répond.</p>`)+(b?'':'<button class="buzz" style="padding:24px 0" onclick="buzz.call(this)">🔴 BUZZ</button>')}
 else if(S.reveal)m=`<div class="big">${e(S.reveal.a)} — ${e(S.reveal.t)}</div><div class="m">${S.reveal.y}</div>`;else m=`<p class="m">${e(S.msg)}</p>`;
 A.innerHTML=`<div class="card"><div class="m">${e(me)}</div>${m}</div><div class="card"><h3>Ordre des buzz</h3>${S.buzz.length?`<ul>${S.buzz.map((n,i)=>`<li class="${S.phase=='judge'&&i==S.active?'on':''}">${i+1}. ${e(n)}</li>`).join('')}</ul>`:'<p class="m">—</p>'}</div>
 <div class="card"><h3>Classement</h3>${Object.entries(S.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')}</div>`}
