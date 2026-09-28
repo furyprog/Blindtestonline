@@ -63,13 +63,14 @@ function exp(){const b=new Blob([JSON.stringify(DB)],{type:'application/json'}),
 function imp(i){const f=i.files[0];if(!f)return;f.text().then(x=>{try{DB=DB.concat(JSON.parse(x).filter(t=>t.vid&&!DB.some(d=>d.id==t.id)));save();hostUI()}catch(_){alert('Fichier invalide')}})}
 function cards(){$('cards').innerHTML=DB.map((t,i)=>`<div><img src="${qr('BT:'+t.id)}"><br>#${i+1}</div>`).join('');window.print()}
 /* lecture YouTube */
+function go(){if(g.phase=='load'){g.phase='play';g.msg='🎧 Buzz !';upd();tm=setTimeout(stop,maxD*1000)}}
 function play(t,test){if(g.phase=='play'||g.phase=='load')return;if(mode=='api'&&!ytReady){alert('Lecteur YouTube en chargement, réessaie.');return}
 testing=!!test;clearTimeout(tm);const o=$('sf');if(o)o.remove();
 if(!test){g.cur=t;g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.phase='load';g.msg='⏳ Chargement…';g.played.push(t.id)}upd();
 if(mode!='api'){const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow='autoplay';f.style.border=0;
-f.src=mode=='yu'?'https://www.yout-ube.com/watch?v='+t.vid:'https://www.youtube-nocookie.com/embed/'+t.vid+'?autoplay=1&playsinline=1&controls=0&rel=0';
-f.onload=()=>{if(g.phase=='load'){g.phase='play';g.msg='🎧 Buzz !';upd();tm=setTimeout(stop,maxD*1000)}};$('ytw').appendChild(f);return}
-if(yt&&yt.loadVideoById)yt.loadVideoById(t.vid);else yt=new YT.Player('yt',{width:200,height:200,host:'https://www.youtube-nocookie.com',videoId:t.vid,playerVars:{autoplay:1,playsinline:1,controls:0,rel:0},
+f.src=mode=='yu'?'https://www.yout-ube.com/watch?v='+t.vid+'&autoplay=1':'https://www.youtube-nocookie.com/embed/'+t.vid+'?autoplay=1&playsinline=1&controls=0&rel=0';
+if(mode=='yu'){f.onload=()=>{if(g.phase=='load'){g.msg='👆 Touche le carré noir pour lancer la musique';upd()}};const bl=()=>setTimeout(()=>{if(document.activeElement===f){window.removeEventListener('blur',bl);go()}},0);window.addEventListener('blur',bl)}else f.onload=go;$('ytw').appendChild(f);return}
+if(yt&&yt.destroy){try{yt.destroy()}catch(_){}}if(!$('yt')){const sp=document.createElement('span');sp.id='yt';$('ytw').appendChild(sp)}yt=new YT.Player('yt',{width:200,height:200,host:'https://www.youtube-nocookie.com',videoId:t.vid,playerVars:{autoplay:1,playsinline:1,controls:0,rel:0},
 events:{onReady:x=>x.target.playVideo(),onStateChange:ys,onError:()=>{g.phase='idle';msg('❌ Lecture intégrée impossible pour ce titre.')}}})}
 function ys(x){if(x.data==1&&g.phase=='load'){g.phase='play';g.msg='🎧 Buzz !';upd();tm=setTimeout(stop,maxD*1000)}}
 function stop(){clearTimeout(tm);const sf=$('sf');if(sf)sf.remove();if(yt&&yt.pauseVideo)yt.pauseVideo();if(g.phase=='play'||g.phase=='load'){g.phase=g.buzz.length?'judge':'done';g.active=g.buzz.length?0:-1;g.msg=g.buzz.length?'🎤 Au tour de '+g.buzz[0]:'Personne n\'a buzzé.'}upd()}
@@ -83,7 +84,7 @@ function rev(){const t=g.cur;g.reveal={a:t.artist,t:t.title,y:t.year};g.phase='d
 function bz(){return g.buzz.length?`<ul>${g.buzz.map((n,i)=>`<li class="${g.phase=='judge'&&i==g.active?'on':''}">${i+1}. ${e(n)}</li>`).join('')}</ul>`:'<p class="m">Aucun buzz.</p>'}
 function upd(){const st={phase:g.phase,buzz:g.buzz,active:g.active,scores:g.scores,msg:g.msg,reveal:g.reveal};Object.values(conns).forEach(c=>c.open&&c.send({t:'s',s:st}));
 if(!$('pn'))return;$('np').textContent=Object.keys(conns).length+' joueur(s) connecté(s)';
-let h=`<div class="m">${e(g.msg)}</div>`+(g.cur&&g.phase!='idle'?`<div class="big">🎵 ${e(g.cur.artist)} — ${e(g.cur.title)} (${g.cur.year})</div>`:'')+bz();
+let h=`<div class="m">${e(g.msg)}</div>`+(g.phase=='load'&&mode!='api'?'<button class="p" style="margin:6px 0" onclick="go()">🔓 Débloquer les buzzers</button>':'')+(g.cur&&g.phase!='idle'?`<div class="big">🎵 ${e(g.cur.artist)} — ${e(g.cur.title)} (${g.cur.year})</div>`:'')+bz();
 if(g.phase=='judge'){h+=`<div class="big" style="margin:10px 0">🎤 ${e(g.buzz[g.active])}</div><div class="row"><button ${g.j.a?'disabled':''} onclick="judge('a')">✅ Artiste +1</button><button ${g.j.t?'disabled':''} onclick="judge('t')">✅ Titre +1</button></div>
 <div class="row" style="margin-top:8px"><input type="number" placeholder="Année annoncée" value="${yv}" oninput="yv=this.value"><button ${g.j.y?'disabled':''} onclick="judge('y')">Valider année</button></div>
 <div class="row" style="margin-top:8px"><button class="g" onclick="nxt()">➡️ Buzzer suivant</button><button class="p" onclick="rev()">✔️ Terminer</button></div>`}
