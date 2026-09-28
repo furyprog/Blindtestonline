@@ -35,7 +35,7 @@ const vid=u=>(u.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/)||[])[1];
 const hash=()=>location.hash.replace('#','').toUpperCase();
 function home(){A.innerHTML=`<h1>🎧 BUZZ · Blind Test</h1><div class="card"><div class="row"><button class="p" onclick="host()">🎙 Modérateur</button><button onclick="joinUI()">🙋 Joueur</button></div></div>`;if(hash())joinUI()}
 /* ================= HOST ================= */
-let simple=localStorage.getItem('bt_simple')=='1',peer,conns={},code,g,yt,ytReady=false,tm,maxD=20,yv='',tab='g',testing=false;
+let mode=localStorage.getItem('bt_mode')||'api',peer,conns={},code,g,yt,ytReady=false,tm,maxD=20,yv='',tab='g',testing=false;
 function onYouTubeIframeAPIReady(){ytReady=true}
 function host(){code=Math.random().toString(36).slice(2,6).toUpperCase();g={phase:'idle',buzz:[],active:-1,scores:{},cur:null,j:{},reveal:null,msg:'Prêt.',played:[]};
 peer=new Peer('bt-'+code);peer.on('error',x=>{if(x.type=='unavailable-id')host();else msg('Réseau : '+x.type)});
@@ -47,22 +47,28 @@ A.innerHTML=`<div class="row" style="margin-bottom:12px"><button class="${tab=='
 <div class="card"><h3>Code : ${code}</h3><p class="m">Les joueurs ouvrent ce lien ou scannent :<br><b>${e(link)}</b></p><img src="${qr(link)}" width="130"><p class="m" id="np"></p></div>
 <div class="card"><label class="m">Durée max (secondes)</label><input type="number" value="${maxD}" min="5" max="300" oninput="maxD=+this.value||20">
 <div class="row" style="margin-top:8px"><button class="p" onclick="draw()">🎲 Au hasard</button><button onclick="scan()">📷 Scanner une carte</button><button class="d" onclick="stop()">⏹ Stop</button></div></div>
-<div class="card"><label class="m"><input type="checkbox" style="width:auto" ${simple?'checked':''} onchange="simple=this.checked;localStorage.setItem('bt_simple',+simple)"> Lecteur simple (test anti-pub)</label><div id="ytw" style="margin-top:8px"><div>🎵</div><span id="yt"></span></div></div>
+<div class="card"><label class="m">Lecteur : <select onchange="mode=this.value;localStorage.setItem('bt_mode',mode);stop()" style="background:#171329;color:#f3efe8;border:1px solid #352d54;border-radius:8px;padding:6px"><option value="api" ${mode=='api'?'selected':''}>YouTube (contrôle précis)</option><option value="simple" ${mode=='simple'?'selected':''}>YouTube simple</option><option value="yu" ${mode=='yu'?'selected':''}>yout-ube.com (test)</option></select></label><div id="ytw" style="margin-top:8px"><div>🎵</div><span id="yt"></span></div></div>
 <div class="card" id="pn"></div><div class="card"><h3>Classement</h3><div id="lb"></div></div>`:`
 <div class="card"><h3>Ajouter un titre</h3><input id="fu" placeholder="Lien YouTube"><div class="row"><input id="fa" placeholder="Artiste"><input id="ft" placeholder="Titre"></div><input id="fy" type="number" placeholder="Année">
 <button class="p" style="margin-top:6px" onclick="add()">+ Ajouter</button><p class="m" id="fm"></p></div>
+<div class="card"><h3>Coller une liste</h3><p class="m">Une ligne par titre : lien ; artiste ; titre ; année</p><textarea id="bl" rows="5" style="width:100%;background:#171329;color:#f3efe8;border:1px solid #352d54;border-radius:10px;padding:10px"></textarea><button class="p" style="margin-top:6px" onclick="bulk()">Importer</button><p class="m" id="bm"></p></div>
 <div class="card"><div class="row"><button onclick="exp()">⬇️ Exporter</button><label><button onclick="$('imp').click()" style="width:100%">⬆️ Importer</button></label><button onclick="cards()">🖨 Cartes QR</button></div><input id="imp" type="file" accept=".json" hidden onchange="imp(this)"></div>
-<div class="card">${DB.map((t,i)=>`<div class="ld"><span>${e(t.artist)} — ${e(t.title)} (${t.year})</span><span><button class="g" onclick="test(${i})">▶</button> <button class="g" onclick="DB.splice(${i},1);save();hostUI()">✕</button></span></div>`).join('')||'<p class="m">Base vide.</p>'}</div>`);if(tab=='g')upd()}
+<div class="card">${DB.map((t,i)=>`<div class="ld"><span>${e(t.artist)} — ${e(t.title)} (${t.year})</span><span><button class="g" onclick="test(${i})">▶</button> <button class="g" onclick="del(${i})">✕</button></span></div>`).join('')||'<p class="m">Base vide.</p>'}</div>`);if(tab=='g')upd()}
 function msg(s){g.msg=s;upd()}
 function add(){const v=vid($('fu').value),a=$('fa').value.trim(),t=$('ft').value.trim(),y=+$('fy').value;if(!v||!a||!t||!y){$('fm').textContent='⚠️ Lien YouTube valide, artiste, titre et année requis.';return}
-DB.push({id:Date.now().toString(36),vid:v,artist:a,title:t,year:y});save();hostUI()}
+if(DB.some(d=>d.id==v)){$('fm').textContent='Ce titre est déjà dans la base.';return}DB.push({id:v,vid:v,artist:a,title:t,year:y});save();hostUI()}
+function del(i){const t=DB.splice(i,1)[0],d=JSON.parse(localStorage.getItem('bt_del')||'[]');d.push(t.id);localStorage.setItem('bt_del',JSON.stringify(d));save();hostUI()}
+function bulk(){let n=0,bad=0;$('bl').value.split('\n').forEach(l=>{if(!l.trim())return;const q=l.split(/[;\t|]/).map(x=>x.trim()),v=vid(q[0]||''),y=+q[3];if(!v||!q[1]||!q[2]||!y){bad++;return}if(DB.some(d=>d.id==v))return;DB.push({id:v,vid:v,artist:q[1],title:q[2],year:y});n++});save();hostUI();$('bm').textContent=n+' ajouté(s)'+(bad?', '+bad+' ligne(s) ignorée(s)':'')}
 function exp(){const b=new Blob([JSON.stringify(DB)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='blindtest-base.json';a.click()}
 function imp(i){const f=i.files[0];if(!f)return;f.text().then(x=>{try{DB=DB.concat(JSON.parse(x).filter(t=>t.vid&&!DB.some(d=>d.id==t.id)));save();hostUI()}catch(_){alert('Fichier invalide')}})}
 function cards(){$('cards').innerHTML=DB.map((t,i)=>`<div><img src="${qr('BT:'+t.id)}"><br>#${i+1}</div>`).join('');window.print()}
-/* lecture */
-function play(t,test){if(!simple&&!ytReady){alert('Lecteur YouTube en chargement, réessaie.');return}if(g.phase=='play'||g.phase=='load')return;
-testing=!!test;clearTimeout(tm);if(!test){g.cur=t;g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.phase='load';g.msg='⏳ Chargement…';g.played.push(t.id)}upd();
-if(simple){const o=$('sf');if(o)o.remove();const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow='autoplay';f.style.border=0;f.src='https://www.youtube-nocookie.com/embed/'+t.vid+'?autoplay=1&playsinline=1&controls=0&rel=0';f.onload=()=>{if(g.phase=='load'){g.phase='play';g.msg='🎧 Buzz !';upd();tm=setTimeout(stop,maxD*1000)}};$('ytw').appendChild(f);return}
+/* lecture YouTube */
+function play(t,test){if(g.phase=='play'||g.phase=='load')return;if(mode=='api'&&!ytReady){alert('Lecteur YouTube en chargement, réessaie.');return}
+testing=!!test;clearTimeout(tm);const o=$('sf');if(o)o.remove();
+if(!test){g.cur=t;g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.phase='load';g.msg='⏳ Chargement…';g.played.push(t.id)}upd();
+if(mode!='api'){const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow='autoplay';f.style.border=0;
+f.src=mode=='yu'?'https://www.yout-ube.com/watch?v='+t.vid:'https://www.youtube-nocookie.com/embed/'+t.vid+'?autoplay=1&playsinline=1&controls=0&rel=0';
+f.onload=()=>{if(g.phase=='load'){g.phase='play';g.msg='🎧 Buzz !';upd();tm=setTimeout(stop,maxD*1000)}};$('ytw').appendChild(f);return}
 if(yt&&yt.loadVideoById)yt.loadVideoById(t.vid);else yt=new YT.Player('yt',{width:200,height:200,host:'https://www.youtube-nocookie.com',videoId:t.vid,playerVars:{autoplay:1,playsinline:1,controls:0,rel:0},
 events:{onReady:x=>x.target.playVideo(),onStateChange:ys,onError:()=>{g.phase='idle';msg('❌ Lecture intégrée impossible pour ce titre.')}}})}
 function ys(x){if(x.data==1&&g.phase=='load'){g.phase='play';g.msg='🎧 Buzz !';upd();tm=setTimeout(stop,maxD*1000)}}
@@ -84,7 +90,7 @@ if(g.phase=='judge'){h+=`<div class="big" style="margin:10px 0">🎤 ${e(g.buzz[
 if(g.phase=='done')h+=`<button style="margin-top:8px" onclick="rev()">👁 Révéler</button>`;$('pn').innerHTML=h;
 $('lb').innerHTML=Object.entries(g.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')||'<p class="m">—</p>'}
 /* scan QR */
-let sst;function scan(){if(!simple&&!ytReady)return alert('Lecteur YouTube en chargement.');navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(s=>{sst=s;$('scan').hidden=false;const v=$('sv');v.srcObject=s;v.play();const cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});
+let sst;function scan(){if(mode=='api'&&!ytReady)return alert('Lecteur YouTube en chargement.');navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(s=>{sst=s;$('scan').hidden=false;const v=$('sv');v.srcObject=s;v.play();const cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});
 (function lp(){if(!sst)return;if(v.videoWidth){cv.width=v.videoWidth;cv.height=v.videoHeight;cx.drawImage(v,0,0);const r=jsQR(cx.getImageData(0,0,cv.width,cv.height).data,cv.width,cv.height);
 if(r&&r.data.startsWith('BT:')){const t=DB.find(d=>d.id==r.data.slice(3));stopScan();if(t)play(t);else alert('Carte inconnue de cette base.');return}}setTimeout(lp,200)})()}).catch(()=>alert('Caméra indisponible.'))}
 function stopScan(){if(sst)sst.getTracks().forEach(t=>t.stop());sst=null;$('scan').hidden=true}
@@ -101,5 +107,6 @@ else if(S.phase=='judge'){const c=S.buzz[S.active];m=`<p class="big">${c==me?'�
 else if(S.reveal)m=`<div class="big">${e(S.reveal.a)} — ${e(S.reveal.t)}</div><div class="m">${S.reveal.y}</div>`;else m=`<p class="m">${e(S.msg)}</p>`;
 A.innerHTML=`<div class="card"><div class="m">${e(me)}</div>${m}</div><div class="card"><h3>Ordre des buzz</h3>${S.buzz.length?`<ul>${S.buzz.map((n,i)=>`<li class="${S.phase=='judge'&&i==S.active?'on':''}">${i+1}. ${e(n)}</li>`).join('')}</ul>`:'<p class="m">—</p>'}</div>
 <div class="card"><h3>Classement</h3>${Object.entries(S.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')}</div>`}
+fetch('titres.json',{cache:'no-cache'}).then(x=>x.ok?x.json():[]).then(L=>{const del=JSON.parse(localStorage.getItem('bt_del')||'[]');let n=0;L.forEach(x=>{const v=x.vid||vid(x.url||'');if(!v||!x.artist||!x.title||!x.year)return;const id=x.id||v;if(del.includes(id)||DB.some(d=>d.id==id))return;DB.push({id,vid:v,artist:x.artist,title:x.title,year:+x.year});n++});if(n){save();if(peer&&tab=='b')hostUI()}}).catch(()=>{});
 home();
 </script></body></html>
