@@ -35,19 +35,19 @@ const vid=u=>(u.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/)||[])[1];
 const hash=()=>location.hash.replace('#','').toUpperCase();
 function home(){A.innerHTML=`<h1>🎧 BUZZ · Blind Test</h1><div class="card"><div class="row"><button class="p" onclick="host()">🎙 Modérateur</button><button onclick="joinUI()">🙋 Joueur</button></div></div>`;if(hash())joinUI()}
 /* ================= HOST ================= */
-let peer,conns={},code,g,yt,ytReady=false,tm,maxD=20,yv='',tab='g',testing=false;
+let simple=localStorage.getItem('bt_simple')=='1',peer,conns={},code,g,yt,ytReady=false,tm,maxD=20,yv='',tab='g',testing=false;
 function onYouTubeIframeAPIReady(){ytReady=true}
 function host(){code=Math.random().toString(36).slice(2,6).toUpperCase();g={phase:'idle',buzz:[],active:-1,scores:{},cur:null,j:{},reveal:null,msg:'Prêt.',played:[]};
 peer=new Peer('bt-'+code);peer.on('error',x=>{if(x.type=='unavailable-id')host();else msg('Réseau : '+x.type)});
 peer.on('connection',c=>{c.on('data',m=>{if(m.t=='join'){let n=(m.name||'?').slice(0,16),k=n,i=2;while(conns[k])k=n+i++;c.n=k;conns[k]=c;g.scores[k]??=0;c.send({t:'me',name:k});upd()}
 if(m.t=='buzz'&&g.phase=='play'&&c.n&&!g.buzz.includes(c.n)){g.buzz.push(c.n);if(g.buzz.length>=Object.keys(conns).length)stop();else upd()}});
 c.on('close',()=>{delete conns[c.n];upd()})});hostUI()}
-function hostUI(){const link=location.href.split('#')[0]+'#'+code;
+function hostUI(){yt=null;const link=location.href.split('#')[0]+'#'+code;
 A.innerHTML=`<div class="row" style="margin-bottom:12px"><button class="${tab=='g'?'p':''}" onclick="tab='g';hostUI()">🎮 Jeu</button><button class="${tab=='b'?'p':''}" onclick="tab='b';hostUI()">📚 Base (${DB.length})</button></div>`+(tab=='g'?`
 <div class="card"><h3>Code : ${code}</h3><p class="m">Les joueurs ouvrent ce lien ou scannent :<br><b>${e(link)}</b></p><img src="${qr(link)}" width="130"><p class="m" id="np"></p></div>
 <div class="card"><label class="m">Durée max (secondes)</label><input type="number" value="${maxD}" min="5" max="300" oninput="maxD=+this.value||20">
 <div class="row" style="margin-top:8px"><button class="p" onclick="draw()">🎲 Au hasard</button><button onclick="scan()">📷 Scanner une carte</button><button class="d" onclick="stop()">⏹ Stop</button></div></div>
-<div class="card"><div id="ytw"><div>🎵</div><span id="yt"></span></div></div>
+<div class="card"><label class="m"><input type="checkbox" style="width:auto" ${simple?'checked':''} onchange="simple=this.checked;localStorage.setItem('bt_simple',+simple)"> Lecteur simple (test anti-pub)</label><div id="ytw" style="margin-top:8px"><div>🎵</div><span id="yt"></span></div></div>
 <div class="card" id="pn"></div><div class="card"><h3>Classement</h3><div id="lb"></div></div>`:`
 <div class="card"><h3>Ajouter un titre</h3><input id="fu" placeholder="Lien YouTube"><div class="row"><input id="fa" placeholder="Artiste"><input id="ft" placeholder="Titre"></div><input id="fy" type="number" placeholder="Année">
 <button class="p" style="margin-top:6px" onclick="add()">+ Ajouter</button><p class="m" id="fm"></p></div>
@@ -60,12 +60,13 @@ function exp(){const b=new Blob([JSON.stringify(DB)],{type:'application/json'}),
 function imp(i){const f=i.files[0];if(!f)return;f.text().then(x=>{try{DB=DB.concat(JSON.parse(x).filter(t=>t.vid&&!DB.some(d=>d.id==t.id)));save();hostUI()}catch(_){alert('Fichier invalide')}})}
 function cards(){$('cards').innerHTML=DB.map((t,i)=>`<div><img src="${qr('BT:'+t.id)}"><br>#${i+1}</div>`).join('');window.print()}
 /* lecture */
-function play(t,test){if(!ytReady){alert('Lecteur YouTube en chargement, réessaie.');return}if(g.phase=='play'||g.phase=='load')return;
+function play(t,test){if(!simple&&!ytReady){alert('Lecteur YouTube en chargement, réessaie.');return}if(g.phase=='play'||g.phase=='load')return;
 testing=!!test;clearTimeout(tm);if(!test){g.cur=t;g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.phase='load';g.msg='⏳ Chargement…';g.played.push(t.id)}upd();
+if(simple){const o=$('sf');if(o)o.remove();const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow='autoplay';f.style.border=0;f.src='https://www.youtube-nocookie.com/embed/'+t.vid+'?autoplay=1&playsinline=1&controls=0&rel=0';f.onload=()=>{if(g.phase=='load'){g.phase='play';g.msg='🎧 Buzz !';upd();tm=setTimeout(stop,maxD*1000)}};$('ytw').appendChild(f);return}
 if(yt&&yt.loadVideoById)yt.loadVideoById(t.vid);else yt=new YT.Player('yt',{width:200,height:200,host:'https://www.youtube-nocookie.com',videoId:t.vid,playerVars:{autoplay:1,playsinline:1,controls:0,rel:0},
 events:{onReady:x=>x.target.playVideo(),onStateChange:ys,onError:()=>{g.phase='idle';msg('❌ Lecture intégrée impossible pour ce titre.')}}})}
 function ys(x){if(x.data==1&&g.phase=='load'){g.phase='play';g.msg='🎧 Buzz !';upd();tm=setTimeout(stop,maxD*1000)}}
-function stop(){clearTimeout(tm);if(yt&&yt.pauseVideo)yt.pauseVideo();if(g.phase=='play'||g.phase=='load'){g.phase=g.buzz.length?'judge':'done';g.active=g.buzz.length?0:-1;g.msg=g.buzz.length?'🎤 Au tour de '+g.buzz[0]:'Personne n\'a buzzé.'}upd()}
+function stop(){clearTimeout(tm);const sf=$('sf');if(sf)sf.remove();if(yt&&yt.pauseVideo)yt.pauseVideo();if(g.phase=='play'||g.phase=='load'){g.phase=g.buzz.length?'judge':'done';g.active=g.buzz.length?0:-1;g.msg=g.buzz.length?'🎤 Au tour de '+g.buzz[0]:'Personne n\'a buzzé.'}upd()}
 function draw(){let p=DB.filter(t=>!g.played.includes(t.id));if(!DB.length){alert('Base vide.');return}if(!p.length){g.played=[];p=DB}play(p[Math.random()*p.length|0])}
 function test(i){tab='g';hostUI();setTimeout(()=>play(DB[i],true),50)}
 function judge(k){const n=g.buzz[g.active];if(!n)return;const s=p=>g.scores[n]=(g.scores[n]||0)+p;
@@ -83,7 +84,7 @@ if(g.phase=='judge'){h+=`<div class="big" style="margin:10px 0">🎤 ${e(g.buzz[
 if(g.phase=='done')h+=`<button style="margin-top:8px" onclick="rev()">👁 Révéler</button>`;$('pn').innerHTML=h;
 $('lb').innerHTML=Object.entries(g.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')||'<p class="m">—</p>'}
 /* scan QR */
-let sst;function scan(){if(!ytReady)return alert('Lecteur YouTube en chargement.');navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(s=>{sst=s;$('scan').hidden=false;const v=$('sv');v.srcObject=s;v.play();const cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});
+let sst;function scan(){if(!simple&&!ytReady)return alert('Lecteur YouTube en chargement.');navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(s=>{sst=s;$('scan').hidden=false;const v=$('sv');v.srcObject=s;v.play();const cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});
 (function lp(){if(!sst)return;if(v.videoWidth){cv.width=v.videoWidth;cv.height=v.videoHeight;cx.drawImage(v,0,0);const r=jsQR(cx.getImageData(0,0,cv.width,cv.height).data,cv.width,cv.height);
 if(r&&r.data.startsWith('BT:')){const t=DB.find(d=>d.id==r.data.slice(3));stopScan();if(t)play(t);else alert('Carte inconnue de cette base.');return}}setTimeout(lp,200)})()}).catch(()=>alert('Caméra indisponible.'))}
 function stopScan(){if(sst)sst.getTracks().forEach(t=>t.stop());sst=null;$('scan').hidden=true}
