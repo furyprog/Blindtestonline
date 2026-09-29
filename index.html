@@ -85,11 +85,11 @@ function rev(){const t=g.cur;g.reveal={a:t.artist,t:t.title,y:t.year};g.phase='d
 function bz(){return g.buzz.length?`<ul>${g.buzz.map((n,i)=>`<li class="${g.phase=='judge'&&i==g.active?'on':''}">${i+1}. ${e(n)}</li>`).join('')}</ul>`:'<p class="m">Aucun buzz.</p>'}
 function upd(){const st={phase:g.phase,buzz:g.buzz,active:g.active,scores:g.scores,msg:g.phase=='ready'?'⏳ Prépare-toi, le prochain titre arrive…':g.phase=='wait'?'⏸ Musique en pause…':g.msg,reveal:g.reveal};Object.values(conns).forEach(c=>c.open&&c.send({t:'s',s:st}));
 if(!$('pn'))return;$('np').textContent=Object.keys(conns).length+' joueur(s) connecté(s)';
-let h=`<div class="m">${e(g.msg)}</div>`+(g.phase=='ready'?'<button class="p" style="margin:6px 0" onclick="go()">🔓 Lancer / débloquer les buzzers</button>':'')+(g.cur&&g.phase!='idle'?`<div class="big">🎵 ${e(g.cur.artist)} — ${e(g.cur.title)} (${g.cur.year})</div>`:'')+bz();
+let h=`<div class="m">${e(g.msg)}</div>`+(g.cur&&g.phase!='idle'?`<div class="big">🎵 ${e(g.cur.artist)} — ${e(g.cur.title)} (${g.cur.year})</div>`:'')+bz();
 if(g.phase=='judge'){h+=`<div class="big" style="margin:10px 0">🎤 ${e(g.buzz[g.active])}</div><div class="row"><button ${g.j.a?'disabled':''} onclick="judge('a')">✅ Artiste +1</button><button ${g.j.t?'disabled':''} onclick="judge('t')">✅ Titre +1</button></div>
 <div class="row" style="margin-top:8px"><input type="number" placeholder="Année annoncée" value="${yv}" oninput="yv=this.value"><button class="p" onclick="yearEnd()">Valider l'année et suivant</button></div>
 <div class="row" style="margin-top:8px"><button class="d" onclick="wrong()">❌ Mauvaise réponse</button><button onclick="rev()">✔️ Terminer sans année</button></div>`}
-if(g.phase=='wait')h+=`<p class="m">Musique en pause. Les joueurs peuvent encore buzzer.</p><button onclick="resume()">▶ Reprendre (bouton de secours)</button>`;
+if(g.phase=='wait')h+=`<p class="m">Musique en pause. Touche le carré noir pour la reprendre. Les joueurs peuvent encore buzzer.</p>`;
 if(g.phase=='done')h+=`<button style="margin-top:8px" onclick="rev()">👁 Révéler</button>`;$('pn').innerHTML=h;
 $('lb').innerHTML=Object.entries(g.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')||'<p class="m">—</p>'}
 /* ================= PLAYER ================= */
