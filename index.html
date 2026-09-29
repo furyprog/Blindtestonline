@@ -15,14 +15,25 @@ input{font:inherit;width:100%;background:#171329;color:var(--t);border:1px solid
 li{list-style:none;padding:8px 10px;margin-bottom:6px;border-radius:10px;background:#171329}li.on{background:var(--a);color:#1a1526;font-weight:700}ul{padding:0;margin:0}
 .ld{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #2c2648}
 #ytw{position:relative;width:200px;height:200px;margin:auto}#ytw>div{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;font-size:42px;pointer-events:none}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:20}
+#ov[hidden]{display:none}
+#ov .box{background:var(--c);border:1px solid #352d54;border-radius:16px;padding:20px;max-width:340px;text-align:center}
+#ov .box p{margin:0 0 16px}
 </style></head><body>
 <div class="w" id="app"></div>
+<div id="ov" hidden><div class="box"><p id="ovmsg"></p><div class="row"><button class="p" id="ovyes">OK</button><button class="g" onclick="$('ov').hidden=true">Annuler</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 const $=id=>document.getElementById(id),A=$('app');
 const e=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let DB=JSON.parse(localStorage.getItem('bt_db')||'[]');const save=()=>localStorage.setItem('bt_db',JSON.stringify(DB));
+const GENRES=['Rock & Alternatif / Metal','Pop','Rap / Hip-Hop','Électronique / Dance','Soul / R&B / Funk','B.O. / Médias','Variété / Chanson','Folk / Country','Reggae / Dancehall','Jazz / Blues / Latino','Divers / Instrumental'];
+let filt=JSON.parse(localStorage.getItem('bt_filt')||'{"genres":[],"langues":[],"yMin":"","yMax":""}');
+const saveFilt=()=>localStorage.setItem('bt_filt',JSON.stringify(filt));
+function matches(t){if(filt.genres.length&&!filt.genres.includes(t.genre))return false;if(filt.langues.length&&!filt.langues.includes(t.langue))return false;
+if(filt.yMin&&t.year<+filt.yMin)return false;if(filt.yMax&&t.year>+filt.yMax)return false;return true}
+function toggleFilt(kind,val){const l=filt[kind],i=l.indexOf(val);if(i>-1)l.splice(i,1);else l.push(val);saveFilt();hostUI()}
 const qr=t=>{const q=qrcode(0,'M');q.addData(t);q.make();return q.createDataURL(5,2)};
 const vid=u=>(u.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/)||[])[1];
 const hash=()=>location.hash.replace('#','').toUpperCase();
@@ -38,32 +49,42 @@ c.on('close',()=>{delete conns[c.n];upd()})});hostUI()}
 function hostUI(){yt=null;const link=location.href.split('#')[0]+'#'+code;
 A.innerHTML=`<div class="row" style="margin-bottom:12px"><button class="${tab=='g'?'p':''}" onclick="tab='g';hostUI()">🎮 Jeu</button><button class="${tab=='b'?'p':''}" onclick="tab='b';hostUI()">📚 Base (${DB.length})</button></div>`+(tab=='g'?`
 <div class="card"><h3>Code : ${code}</h3><p class="m">Les joueurs ouvrent ce lien ou scannent :<br><b>${e(link)}</b></p><img src="${qr(link)}" width="130"><p class="m" id="np"></p></div>
+<div class="card"><h3>Filtres</h3><p class="m">Genres</p><div class="row" style="flex-wrap:wrap">${GENRES.map(x=>`<button class="${filt.genres.includes(x)?'p':'g'}" style="flex:none;font-size:12px;padding:8px 10px" onclick="toggleFilt('genres','${x.replace(/'/g,"\\'")}')">${e(x)}</button>`).join('')}</div>
+${langOptions().length?`<p class="m" style="margin-top:10px">Langues</p><div class="row" style="flex-wrap:wrap">${langOptions().map(x=>`<button class="${filt.langues.includes(x)?'p':'g'}" style="flex:none;font-size:12px;padding:8px 10px" onclick="toggleFilt('langues','${x.replace(/'/g,"\\'")}')">${e(x)}</button>`).join('')}</div>`:''}
+<div class="row" style="margin-top:10px"><div><label class="m">Année min</label><input type="number" value="${filt.yMin}" oninput="filt.yMin=this.value;saveFilt();hostUI()"></div><div><label class="m">Année max</label><input type="number" value="${filt.yMax}" oninput="filt.yMax=this.value;saveFilt();hostUI()"></div></div>
+<p class="m" style="margin-top:6px">${DB.filter(matches).length} titre(s) correspondent aux critères.</p></div>
 <div class="card"><label class="m">Durée max (secondes)</label><input type="number" value="${maxD}" min="5" max="300" oninput="maxD=+this.value||20">
 <div class="row" style="margin-top:8px"><button class="p" onclick="nouvelle()">🆕 Nouvelle partie</button><button class="d" onclick="stopBtn()">⏹ Stop</button></div></div>
 <div class="card"><div id="ytw" style="margin-top:8px"><div>🎵</div><span id="yt"></span></div></div>
 <div class="card" id="pn"></div><div class="card"><h3>Classement</h3><div id="lb"></div></div>`:`
-<div class="card"><h3>Ajouter un titre</h3><input id="fu" placeholder="Lien YouTube"><div class="row"><input id="fa" placeholder="Artiste"><input id="ft" placeholder="Titre"></div><input id="fy" type="number" placeholder="Année">
+<div class="card"><h3>Ajouter un titre</h3><input id="fu" placeholder="Lien YouTube"><div class="row"><input id="fa" placeholder="Artiste"><input id="ft" placeholder="Titre"></div>
+<div class="row"><input id="fy" type="number" placeholder="Année"><select id="fg" style="font:inherit;width:100%;background:#171329;color:#f3efe8;border:1px solid #352d54;border-radius:10px;padding:11px;margin:4px 0"><option value="">Genre…</option>${GENRES.map(x=>`<option>${e(x)}</option>`).join('')}</select></div>
+<input id="fl" list="langList" placeholder="Langue (ex: Français, Anglais…)"><datalist id="langList">${langOptions().map(x=>`<option value="${e(x)}">`).join('')}</datalist>
 <button class="p" style="margin-top:6px" onclick="add()">+ Ajouter</button><p class="m" id="fm"></p></div>
-<div class="card"><h3>Coller une liste</h3><p class="m">Une ligne par titre : lien ; artiste ; titre ; année</p><textarea id="bl" rows="5" style="width:100%;background:#171329;color:#f3efe8;border:1px solid #352d54;border-radius:10px;padding:10px"></textarea><button class="p" style="margin-top:6px" onclick="bulk()">Importer</button><p class="m" id="bm"></p></div>
+<div class="card"><h3>Coller une liste</h3><p class="m">Une ligne par titre : lien ; artiste ; titre ; année ; genre ; langue (les deux derniers sont facultatifs)</p><textarea id="bl" rows="5" style="width:100%;background:#171329;color:#f3efe8;border:1px solid #352d54;border-radius:10px;padding:10px"></textarea><button class="p" style="margin-top:6px" onclick="bulk()">Importer</button><p class="m" id="bm"></p></div>
 <div class="card"><div class="row"><button onclick="exp()">⬇️ Exporter</button><label><button onclick="$('imp').click()" style="width:100%">⬆️ Importer</button></label></div><input id="imp" type="file" accept=".json" hidden onchange="imp(this)"></div>
-<div class="card">${DB.map((t,i)=>`<div class="ld"><span>${e(t.artist)} — ${e(t.title)} (${t.year})</span><span><button class="g" onclick="pick(${i})">▶</button> <button class="g" onclick="del(${i})">✕</button></span></div>`).join('')||'<p class="m">Base vide.</p>'}</div>`);if(tab=='g'){upd();if(g.phase=='ready')arm(g.next);else if(g.phase=='wait')mk(g.cur,g.pos,resume)}}
+<div class="card">${DB.map((t,i)=>`<div class="ld"><span>${e(t.artist)} — ${e(t.title)} (${t.year})${t.genre||t.langue?` <span class="m">· ${e([t.genre,t.langue].filter(Boolean).join(' · '))}</span>`:''}</span><span><button class="g" onclick="pick(${i})">▶</button> <button class="g" onclick="del(${i})">✕</button></span></div>`).join('')||'<p class="m">Base vide.</p>'}</div>`);if(tab=='g'){upd();if(g.phase=='ready')arm(g.next);else if(g.phase=='wait')mk(g.cur,g.pos,resume)}}
+function langOptions(){return [...new Set(DB.map(t=>t.langue).filter(Boolean))].sort()}
 function msg(s){g.msg=s;upd()}
-function add(){const v=vid($('fu').value),a=$('fa').value.trim(),t=$('ft').value.trim(),y=+$('fy').value;if(!v||!a||!t||!y){$('fm').textContent='⚠️ Lien YouTube valide, artiste, titre et année requis.';return}
-if(DB.some(d=>d.id==v)){$('fm').textContent='Ce titre est déjà dans la base.';return}DB.push({id:v,vid:v,artist:a,title:t,year:y});save();hostUI()}
+function add(){const v=vid($('fu').value),a=$('fa').value.trim(),t=$('ft').value.trim(),y=+$('fy').value,gg=$('fg').value,l=$('fl').value.trim();if(!v||!a||!t||!y){$('fm').textContent='⚠️ Lien YouTube valide, artiste, titre et année requis.';return}
+if(DB.some(d=>d.id==v)){$('fm').textContent='Ce titre est déjà dans la base.';return}DB.push({id:v,vid:v,artist:a,title:t,year:y,genre:gg,langue:l});save();hostUI()}
 function del(i){const t=DB.splice(i,1)[0],d=JSON.parse(localStorage.getItem('bt_del')||'[]');d.push(t.id);localStorage.setItem('bt_del',JSON.stringify(d));save();hostUI()}
-function bulk(){let n=0,bad=0;$('bl').value.split('\n').forEach(l=>{if(!l.trim())return;const q=l.split(/[;\t|]/).map(x=>x.trim()),v=vid(q[0]||''),y=+q[3];if(!v||!q[1]||!q[2]||!y){bad++;return}if(DB.some(d=>d.id==v))return;DB.push({id:v,vid:v,artist:q[1],title:q[2],year:y});n++});save();hostUI();$('bm').textContent=n+' ajouté(s)'+(bad?', '+bad+' ligne(s) ignorée(s)':'')}
+function bulk(){let n=0,bad=0;$('bl').value.split('\n').forEach(l=>{if(!l.trim())return;const q=l.split(/[;\t|]/).map(x=>x.trim()),v=vid(q[0]||''),y=+q[3];if(!v||!q[1]||!q[2]||!y){bad++;return}if(DB.some(d=>d.id==v))return;DB.push({id:v,vid:v,artist:q[1],title:q[2],year:y,genre:q[4]||'',langue:q[5]||''});n++});save();hostUI();$('bm').textContent=n+' ajouté(s)'+(bad?', '+bad+' ligne(s) ignorée(s)':'')}
 function exp(){const b=new Blob([JSON.stringify(DB)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='blindtest-base.json';a.click()}
 function imp(i){const f=i.files[0];if(!f)return;f.text().then(x=>{try{DB=DB.concat(JSON.parse(x).filter(t=>t.vid&&!DB.some(d=>d.id==t.id)));save();hostUI()}catch(_){alert('Fichier invalide')}})}
 /* lecture : le carré noir est le bouton de lancement */
+function askConfirm(msg,yes){$('ovmsg').textContent=msg;$('ov').hidden=false;$('ovyes').onclick=()=>{$('ov').hidden=true;yes()}}
 let BL;
 function rmIframe(){const o=$('sf');if(o)o.remove()}
 function mk(t,pos,cb){rmIframe();if(BL)window.removeEventListener('blur',BL);const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow='autoplay';f.style.border=0;
 f.src='https://www.yout-ube.com/watch?v='+t.vid+(pos>1?'&t='+Math.floor(pos)+'s':'')+'&autoplay=1';
 BL=()=>setTimeout(()=>{if(document.activeElement===f)cb()},0);window.addEventListener('blur',BL);$('ytw').appendChild(f)}
-function pickRnd(){let p=DB.filter(x=>!g.played.includes(x.id)&&x!==g.next);if(!p.length){g.played=[];p=DB.filter(x=>x!==g.next);if(!p.length)p=DB}return p[Math.random()*p.length|0]}
+function pickRnd(){let base=DB.filter(matches);if(!base.length)return null;
+let p=base.filter(x=>!g.played.includes(x.id)&&x!==g.next);if(!p.length){g.played=[];p=base.filter(x=>x!==g.next);if(!p.length)p=base}return p[Math.random()*p.length|0]}
 function arm(t){if(!['idle','ready','done'].includes(g.phase))return;clearTimeout(tm);
 if(!DB.length){rmIframe();g.phase='idle';g.msg="Ajoute des titres dans l'onglet Base.";upd();return}
-t=t||pickRnd();g.next=t;g.phase='ready';g.msg='👆 Prêt : touche le carré noir pour lancer la musique';upd();mk(t,0,go)}
+t=t||pickRnd();if(!t){rmIframe();g.phase='idle';g.msg="Aucun titre ne correspond aux filtres choisis.";upd();return}
+g.next=t;g.phase='ready';g.msg='👆 Prêt : touche le carré noir pour lancer la musique';upd();mk(t,0,go)}
 function go(){if(g.phase!='ready'||!g.next)return;if(BL)window.removeEventListener('blur',BL);g.cur=g.next;g.played.push(g.cur.id);g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.phase='play';g.msg='🎧 Buzz !';g.rem=maxD*1000;g.pos=0;g.t1=Date.now();upd();tm=setTimeout(endRound,g.rem)}
 function pauseBy(n){clearTimeout(tm);const el=Date.now()-g.t1;g.rem-=el;g.pos+=el/1000;rmIframe();g.buzz.push(n);g.active=g.buzz.length-1;g.j={};g.phase='judge';g.msg='🎤 Au tour de '+n;upd()}
 function resume(){if(g.phase!='wait')return;if(BL)window.removeEventListener('blur',BL);g.phase='play';g.msg='🎧 Buzz !';g.t1=Date.now();upd();tm=setTimeout(endRound,g.rem)}
@@ -72,8 +93,8 @@ function wrong(){if(g.active+1<g.buzz.length){g.active++;g.j={};g.msg='🎤 Au t
 if(g.buzz.length>=Object.keys(conns).length||g.rem<=500){rev();return}
 g.phase='wait';g.msg='👆 Touche le carré noir pour reprendre la musique';upd();mk(g.cur,g.pos,resume)}
 function yearEnd(){const b=g.buzz[g.active];if(b&&yv&&g.cur){const d=Math.abs(+yv-g.cur.year);g.scores[b]=(g.scores[b]||0)+(d==0?2:d<=3?1:0)}yv='';rev()}
-function nouvelle(){if(Object.values(g.scores).some(v=>v>0)&&!confirm('Remettre les scores à zéro et démarrer une nouvelle partie ?'))return;
-clearTimeout(tm);const o=$('sf');if(o)o.remove();Object.keys(g.scores).forEach(k=>g.scores[k]=0);g.played=[];g.next=null;g.cur=null;g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.phase='idle';arm()}
+function nouvelle(){const go=()=>{clearTimeout(tm);const o=$('sf');if(o)o.remove();Object.keys(g.scores).forEach(k=>g.scores[k]=0);g.played=[];g.next=null;g.cur=null;g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.phase='idle';arm()};
+if(Object.values(g.scores).some(v=>v>0))askConfirm('Remettre les scores à zéro et démarrer une nouvelle partie ?',go);else go()}
 function stopBtn(){clearTimeout(tm);const o=$('sf');if(o)o.remove();if(g.phase=='idle')return;if(g.phase=='ready'){arm();return}rev()}
 function refuse(){if(g.active+1<g.buzz.length)nxt();else rev()}
 function pick(i){tab='g';hostUI();arm(DB[i])}
@@ -105,6 +126,6 @@ else if(S.phase=='judge'){const c=S.buzz[S.active];m=(c==me?'<p class="big">🎤
 else if(S.reveal)m=`<div class="big">${e(S.reveal.a)} — ${e(S.reveal.t)}</div><div class="m">${S.reveal.y}</div>`;else m=`<p class="m">${e(S.msg)}</p>`;
 A.innerHTML=`<div class="card"><div class="m">${e(me)}</div>${m}</div><div class="card"><h3>Ordre des buzz</h3>${S.buzz.length?`<ul>${S.buzz.map((n,i)=>`<li class="${S.phase=='judge'&&i==S.active?'on':''}">${i+1}. ${e(n)}</li>`).join('')}</ul>`:'<p class="m">—</p>'}</div>
 <div class="card"><h3>Classement</h3>${Object.entries(S.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')}</div>`}
-LOADED=fetch('titres.json',{cache:'no-cache'}).then(x=>x.ok?x.json():[]).then(L=>{const del=JSON.parse(localStorage.getItem('bt_del')||'[]');let n=0;L.forEach(x=>{const v=x.vid||vid(x.url||'');if(!v||!x.artist||!x.title||!x.year)return;const id=x.id||v;if(del.includes(id)||DB.some(d=>d.id==id))return;DB.push({id,vid:v,artist:x.artist,title:x.title,year:+x.year});n++});if(n){save();if(peer&&tab=='b')hostUI()}}).catch(()=>{});
+LOADED=fetch('titres.json',{cache:'no-cache'}).then(x=>x.ok?x.json():[]).then(L=>{const del=JSON.parse(localStorage.getItem('bt_del')||'[]');let n=0;L.forEach(x=>{const v=x.vid||vid(x.url||'');if(!v||!x.artist||!x.title||!x.year)return;const id=x.id||v;if(del.includes(id)||DB.some(d=>d.id==id))return;DB.push({id,vid:v,artist:x.artist,title:x.title,year:+x.year,genre:x.genre||'',langue:x.langue||''});n++});if(n){save();if(peer&&tab=='b')hostUI()}}).catch(()=>{});
 home();
 </script></body></html>
