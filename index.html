@@ -37,6 +37,7 @@ function matches(t){if(filt.genres.length&&!filt.genres.includes(t.genre))return
 if(filt.yMin&&t.year<+filt.yMin)return false;if(filt.yMax&&t.year>+filt.yMax)return false;return true}
 function toggleFilt(kind,val){const l=filt[kind],i=l.indexOf(val);if(i>-1)l.splice(i,1);else l.push(val);saveFilt();hostUI()}
 function updateFiltCount(){const el=$('filtCount');if(el)el.textContent=DB.filter(matches).length+' titre(s) correspondent aux critères.'}
+function retryCur(){clearTimeout(tm);g.phase='ready';g.next=g.cur;g.msg='👆 Prêt : touche le carré noir pour lancer la musique';upd();mk(g.cur,0,go)}
 function fixYearOrder(){if(filt.yMin!==''&&filt.yMax!==''&&+filt.yMin>+filt.yMax){const t=filt.yMin;filt.yMin=filt.yMax;filt.yMax=t;if($('fyMin'))$('fyMin').value=filt.yMin;if($('fyMax'))$('fyMax').value=filt.yMax;saveFilt()}updateFiltCount()}
 const qr=t=>{const q=qrcode(0,'M');q.addData(t);q.make();return q.createDataURL(5,2)};
 const vid=u=>(u.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/)||[])[1];
@@ -132,6 +133,7 @@ function upd(){const st={phase:g.phase,buzz:g.buzz,active:g.active,scores:g.scor
 if(!$('pn'))return;$('np').textContent=Object.keys(conns).length+' joueur(s) connecté(s)';
 let h=`<div class="m">${e(g.msg)}</div>`+((g.phase=='ready'?g.next:g.cur)&&g.phase!='idle'?`<div class="big">${g.phase=='ready'?'⏭ À suivre :':'🎵'} ${e((g.phase=='ready'?g.next:g.cur).artist)} — ${e((g.phase=='ready'?g.next:g.cur).title)} (${(g.phase=='ready'?g.next:g.cur).year})</div>`:'')+bz();
 if(g.phase=='ready')h+=`<p class="m" style="margin-top:6px">Le titre ne se lance pas ? <button class="g" onclick="arm(g.next)">🔁 Réessayer</button> <button class="g" onclick="arm()">⏭ Changer de titre</button></p>`;
+if(g.phase=='play')h+=`<p class="m" style="margin-top:6px">Toujours pas de son ? <button class="g" onclick="retryCur()">🔁 Réessayer</button> <button class="g" onclick="rev()">⏭ Passer ce titre</button></p>`;
 if(g.phase=='wait')h+=`<p class="m" style="margin-top:6px">La reprise ne fonctionne pas ? <button class="g" onclick="mk(g.cur,g.pos,resume)">🔁 Réessayer</button> <button class="g" onclick="rev()">⏭ Passer ce titre</button></p>`;
 if(g.phase=='judge'){h+=`<div class="big" style="margin:10px 0">🎤 ${e(g.buzz[g.active])}</div><div class="row"><button ${g.j.a?'disabled':''} onclick="judge('a')">✅ Artiste +1</button><button ${g.j.t?'disabled':''} onclick="judge('t')">✅ Titre +1</button></div>
 <div class="row" style="margin-top:8px"><input type="number" placeholder="Année annoncée" value="${yv}" oninput="yv=this.value"><button class="p" onclick="yearEnd()">Valider l'année et suivant</button></div>
