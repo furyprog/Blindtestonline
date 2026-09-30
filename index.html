@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>BUZZ · Blind Test</title>
+<title>BuzzHit · Blind Test</title><link rel="icon" href="BuzzHit.png">
 <style>
 :root{--bg:#12101a;--c:#221c38;--a:#ffb545;--r:#ff4d6d;--t:#f3efe8;--m:#9086ac}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font-family:-apple-system,"Segoe UI",sans-serif}
@@ -18,12 +18,28 @@ li{list-style:none;padding:8px 10px;margin-bottom:6px;border-radius:10px;backgro
 .ld>span:last-child{flex:none;white-space:nowrap}
 #ytw{position:relative;width:200px;height:200px;margin:auto}#ytw>div{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;font-size:42px;pointer-events:none}
 #lo{position:absolute;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;font-size:13px;text-align:center;padding:10px;color:var(--t);z-index:2}
-#ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:20}
-#ov[hidden]{display:none}
-#ov .box{background:var(--c);border:1px solid #352d54;border-radius:16px;padding:20px;max-width:340px;text-align:center}
+#ov,#hlp,#pl{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:20}
+#ov[hidden],#hlp[hidden],#pl[hidden]{display:none}
+#ov .box,#hlp .box,#pl .box{background:var(--c);border:1px solid #352d54;border-radius:16px;padding:20px;max-width:340px;text-align:center}
 #ov .box p{margin:0 0 16px}
+.logo{display:block;margin:0 auto 10px;width:100%;max-width:220px;height:auto;border-radius:24px}.logo.sm{max-width:90px}
+.cd{font-size:26px;font-weight:800;text-align:center;color:var(--a);margin:4px 0}.cd:empty{display:none}#hlp .box p{margin:0 0 10px}
+#vic{position:fixed;inset:0;z-index:30;background:rgba(18,16,26,.94);display:flex;align-items:center;justify-content:center;text-align:center}
+.vt{font-size:54px;font-weight:900;color:var(--a);animation:pop .8s ease-out both,pulse 1.2s ease-in-out .8s infinite}.vt small{font-size:22px;color:var(--t)}
+.conf span{position:fixed;top:-30px;font-size:28px;animation:fall 3s linear infinite}
+@keyframes pop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}@keyframes pulse{50%{transform:scale(1.08)}}@keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
 </style></head><body>
 <div class="w" id="app"></div>
+<div id="hlp" hidden><div class="box" style="max-width:520px;max-height:85vh;overflow:auto;text-align:left"><h3>❓ Aide du modérateur</h3>
+<p class="m"><b>Démarrer</b> : clique sur « Nouvelle partie ». Les joueurs ouvrent le lien (ou scannent le QR code) et choisissent un pseudo.</p>
+<p class="m"><b>Lancer la musique</b> : le titre suivant est prêt après chaque manche ; touche le carré noir pour le lancer. Si rien ne se passe : 🔁 Réessayer ou ⏭ Changer de titre.</p>
+<p class="m"><b>Buzz</b> : le premier joueur qui buzze met la musique en pause et dispose du délai de réponse ; un gong sonne à la fin. Tu peux quand même valider une bonne réponse donnée sur le gong.</p>
+<p class="m"><b>Notation</b> : ✅ Artiste +1, ✅ Titre +1. L'année n'est possible qu'après une bonne réponse (artiste ou titre), dans son propre délai : exacte +2, à ±3 ans +1.</p>
+<p class="m"><b>Mauvaise réponse</b> : le joueur suivant en attente prend la main (son délai démarre à ce moment) ; sinon la musique reprend après un toucher sur le carré noir.</p>
+<p class="m"><b>Paramètres</b> : écoute max (10–120 s), délai de réponse et délai d'année (5–30 s), points pour gagner (0 = pas de limite). À la fin de la manche où un joueur atteint le seuil, la partie s'arrête et le meilleur score gagne.</p>
+<p class="m"><b>Filtres</b> : genres, langues et années limitent les titres tirés.</p>
+<p class="m"><b>Base</b> (code admin) : ajout, édition, import/export, signalements, et mode playlist aléatoire (titres entiers enchaînés automatiquement selon les filtres).</p>
+<button class="p" onclick="$('hlp').hidden=true">Fermer</button></div></div><div id="pl" hidden></div>
 <div id="ov" hidden><div class="box"><p id="ovmsg"></p><input id="ovinput" type="text" style="display:none"><div class="row"><button class="p" id="ovyes">OK</button><button class="g" onclick="$('ov').hidden=true">Annuler</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
@@ -31,9 +47,33 @@ li{list-style:none;padding:8px 10px;margin-bottom:6px;border-radius:10px;backgro
 const $=id=>document.getElementById(id),A=$('app');
 const e=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let DB=JSON.parse(localStorage.getItem('bt_db')||'[]');const save=()=>localStorage.setItem('bt_db',JSON.stringify(DB));
-const GENRES=['Rock & Alternatif / Metal','Pop','Rap / Hip-Hop','Électronique / Dance','Soul / R&B / Funk','B.O. Films / Dessins animés','Variété / Chanson','Folk / Country','Reggae / Dancehall','Jazz / Blues / Latino','Divers / Instrumental'];
+const SET=Object.assign({maxD:20,tRep:15,tAnn:10,win:0},JSON.parse(localStorage.getItem('bt_set')||'{}'));
+const setP=(k,a,b,el)=>{SET[k]=Math.min(b,Math.max(a,+el.value||(k=='win'?0:SET[k])));el.value=SET[k];localStorage.setItem('bt_set',JSON.stringify(SET))};
+let AC;function snd(k){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state=='suspended')AC.resume();let t=AC.currentTime;({buzz:[[880,.15]],gong:[[196,.7],[147,.9]],ok:[[660,.1],[880,.2]],win:[[523,.15],[659,.15],[784,.15],[1047,.5]]})[k].forEach(([f,d])=>{const o=AC.createOscillator(),n=AC.createGain();o.type=k=='gong'?'triangle':'sine';o.frequency.value=f;o.connect(n);n.connect(AC.destination);n.gain.setValueAtTime(.3,t);n.gain.exponentialRampToValueAtTime(.001,t+d);o.start(t);o.stop(t+d);t+=d})}catch(_){}}
+const vib=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(_){}};
+const fmt=(l,k)=>(k=='mus'?'🎵 Écoute : ':k=='ans'?'⏱ Réponse : ':'📅 Année : ')+Math.ceil(l/1000)+' s';
+const conf=()=>Array.from({length:24},(_,i)=>`<span style="left:${i*4.2}%;animation-delay:${(i%8)*.35}s">${['🎉','⭐','🎵','🏆'][i%4]}</span>`).join('');
+function startAns(){g.tk='ans';g.tEnd=Date.now()+SET.tRep*1000;g.exp=false}
+function cdUpd(){const el=$('cd');if(el&&g)el.textContent=g.tEnd?fmt(Math.max(0,g.tEnd-Date.now()),g.tk)+(g.exp?' — ⏰ temps écoulé':''):''}
+function tick(){if(!g||!g.phase)return;if(g.tEnd&&!g.exp&&g.tk!='mus'&&Date.now()>=g.tEnd){g.exp=true;snd('gong');upd();return}cdUpd()}
+function pcd(){const el=$('cd');if(!S||!el)return;const l=S.tl-(Date.now()-S.at);el.textContent=S.exp?'⏰ Temps écoulé !':S.tl?fmt(Math.max(0,l),S.tk):''}
+setInterval(tick,250);setInterval(pcd,250);
+function checkWin(){const w=SET.win,b=Object.entries(g.scores).sort((x,y)=>y[1]-x[1])[0];if(!w||!b||b[1]<w)return false;g.winner=b[0];g.phase='over';g.tEnd=0;g.msg='🏆 '+b[0]+' remporte la partie avec '+b[1]+' points !';snd('win');upd();return true}
+/* playlist secrète */
+let plq=[],pli=-1,ytp=null;
+function plStart(){if(['play','judge','wait'].includes(g.phase)){alert("Termine la manche en cours avant de lancer la playlist.");return}
+const b=DB.filter(matches);if(!b.length){alert('Aucun titre ne correspond aux filtres.');return}
+plq=b.slice().sort(()=>Math.random()-.5);pli=-1;rmIframe();clearTimeout(tm);
+$('pl').innerHTML='<div class="box" style="max-width:420px;width:100%"><h3>🎶 Playlist aléatoire</h3><div id="plp"><div id="plyt"></div></div><div id="pln" class="big" style="margin:10px 0"></div><div class="m" id="plc"></div><div class="row" style="margin-top:10px"><button onclick="plTog()">⏯</button><button class="p" onclick="plNext()">⏭ Suivant</button><button class="d" onclick="plStop()">✕ Quitter</button></div></div>';$('pl').hidden=false;
+if(window.YT&&YT.Player)plNext();else{window.onYouTubeIframeAPIReady=()=>plNext();const sc=document.createElement('script');sc.src='https://www.youtube.com/iframe_api';document.head.appendChild(sc)}}
+function plNext(){pli++;if(pli>=plq.length){plq.sort(()=>Math.random()-.5);pli=0}const t=plq[pli];$('pln').textContent=t.artist+' — '+t.title+' ('+t.year+')';$('plc').textContent=(pli+1)+' / '+plq.length;
+if(ytp){ytp.loadVideoById(t.vid);return}
+ytp=new YT.Player('plyt',{width:'100%',height:200,videoId:t.vid,playerVars:{autoplay:1,playsinline:1},events:{onReady:ev=>ev.target.playVideo(),onStateChange:ev=>{if(ev.data===0)plNext()},onError:()=>setTimeout(plNext,800)}})}
+function plTog(){if(!ytp)return;ytp.getPlayerState()===1?ytp.pauseVideo():ytp.playVideo()}
+function plStop(){try{ytp&&ytp.destroy()}catch(_){}ytp=null;$('pl').hidden=true;$('pl').innerHTML=''}
+const GENRES=['Rock & Alternatif / Metal','Pop','Rap / Hip-Hop','Électronique / Dance','Soul / R&B / Funk','B.O. Films / Dessins animés','Variété / Chanson','Folk / Country','Reggae / Dancehall'];
 let filt=JSON.parse(localStorage.getItem('bt_filt')||'{"genres":[],"langues":[],"yMin":"","yMax":""}');
-const saveFilt=()=>localStorage.setItem('bt_filt',JSON.stringify(filt));
+const saveFilt=()=>localStorage.setItem('bt_filt',JSON.stringify(filt));filt.genres=filt.genres.filter(x=>GENRES.includes(x));
 function matches(t){if(filt.genres.length&&!filt.genres.includes(t.genre))return false;if(filt.langues.length&&!filt.langues.includes(t.langue))return false;
 if(filt.yMin&&t.year<+filt.yMin)return false;if(filt.yMax&&t.year>+filt.yMax)return false;return true}
 function toggleFilt(kind,val){const l=filt[kind],i=l.indexOf(val);if(i>-1)l.splice(i,1);else l.push(val);saveFilt();hostUI()}
@@ -54,7 +94,7 @@ if(!a||!a[0]){alert('Impossible de vérifier pour le moment.');return}
 const d=new Date(a[0].commit.committer.date),n=d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 if(n!==commitInfo)alert('⚠️ Une nouvelle version de la base est disponible (mise à jour le '+n+').\nRecharge la page pour l\'utiliser.');
 else alert('✅ Tu as bien la dernière version (mise à jour le '+commitInfo+').')}).catch(()=>alert('Impossible de vérifier pour le moment.'))}
-function home(){A.innerHTML=`<h1>🎧 BUZZ · Blind Test</h1><div class="card"><div class="row"><button class="p" onclick="host()">🎙 Modérateur</button><button onclick="joinUI()">🙋 Joueur</button></div>${dbInfoBlock()}</div>`;refreshDbInfo();if(hash())joinUI()}
+function home(){A.innerHTML=`<img class="logo" src="BuzzHit.png" alt="BuzzHit"><div class="card"><div class="row"><button class="p" onclick="host()">🎙 Modérateur</button><button onclick="joinUI()">🙋 Joueur</button></div>${dbInfoBlock()}</div>`;refreshDbInfo();if(hash())joinUI()}
 /* ================= HOST ================= */
 let LOADED=Promise.resolve(),mode=localStorage.getItem('bt_mode')||'api',peer,conns={},code,g,yt,ytReady=false,tm,maxD=20,yv='',tab='g',testing=false;
 function onYouTubeIframeAPIReady(){ytReady=true}
@@ -62,16 +102,16 @@ function genCode(){const c='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=
 function host(){code=genCode();g={phase:'idle',buzz:[],active:-1,scores:{},cur:null,j:{},reveal:null,msg:'Clique sur « Nouvelle partie » pour commencer.',played:[]};
 peer=new Peer('bt-'+code);peer.on('error',x=>{if(x.type=='unavailable-id')host();else msg('Réseau : '+x.type)});
 peer.on('connection',c=>{c.on('data',m=>{if(m.t=='join'){let n=(m.name||'?').slice(0,16),k=n,i=2;while(conns[k])k=n+i++;c.n=k;conns[k]=c;g.scores[k]??=0;c.send({t:'me',name:k});upd()}
-if(m.t=='buzz'&&c.n&&!g.buzz.includes(c.n)){if(g.phase=='play'){pauseBy(c.n)}else if(g.phase=='judge'){g.buzz.push(c.n);upd()}else if(g.phase=='wait'){rmIframe();g.buzz.push(c.n);g.active=g.buzz.length-1;g.j={};g.phase='judge';g.msg='🎤 Au tour de '+c.n;upd()}}});
+if(m.t=='buzz'&&c.n&&!g.buzz.includes(c.n)){snd('buzz');if(g.phase=='play'){pauseBy(c.n)}else if(g.phase=='judge'){g.buzz.push(c.n);upd()}else if(g.phase=='wait'){rmIframe();g.buzz.push(c.n);g.active=g.buzz.length-1;g.j={};g.phase='judge';g.msg='🎤 Au tour de '+c.n;startAns();upd()}}});
 c.on('close',()=>{delete conns[c.n];upd()})});hostUI()}
 function hostUI(){yt=null;const link=location.href.split('#')[0]+'#'+code;
-A.innerHTML=`<div class="row" style="margin-bottom:12px"><button class="${tab=='g'?'p':''}" onclick="tab='g';hostUI()">🎮 Jeu</button><button class="${tab=='b'?'p':''}" onclick="openBase()">📚 Base (${DB.length})</button></div>`+(tab=='g'?`
+A.innerHTML=`<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="row" style="margin-bottom:12px"><button class="${tab=='g'?'p':''}" onclick="tab='g';hostUI()">🎮 Jeu</button><button class="${tab=='b'?'p':''}" onclick="openBase()">📚 Base (${DB.length})</button><button onclick="$('hlp').hidden=false">❓ Aide</button></div>`+(tab=='g'?`
 <div class="card"><h3>Code : ${code}</h3><p class="m">Les joueurs ouvrent ce lien ou scannent :<br><b>${e(link)}</b></p><img src="${qr(link)}" width="130"><p class="m" id="np"></p>${dbInfoBlock()}</div>
 <div class="card"><h3>Filtres</h3><p class="m">Genres</p><div class="row" style="flex-wrap:wrap">${GENRES.map(x=>`<button class="${filt.genres.includes(x)?'p':'g'}" style="flex:none;font-size:12px;padding:8px 10px" onclick="toggleFilt('genres','${x.replace(/'/g,"\\'")}')">${e(x)}</button>`).join('')}</div>
 ${langOptions().length?`<p class="m" style="margin-top:10px">Langues</p><div class="row" style="flex-wrap:wrap">${langOptions().map(x=>`<button class="${filt.langues.includes(x)?'p':'g'}" style="flex:none;font-size:12px;padding:8px 10px" onclick="toggleFilt('langues','${x.replace(/'/g,"\\'")}')">${e(x)}</button>`).join('')}</div>`:''}
 <div class="row" style="margin-top:10px"><div><label class="m">Année min</label><input id="fyMin" type="number" value="${filt.yMin}" oninput="filt.yMin=this.value;saveFilt();updateFiltCount()" onblur="fixYearOrder()"></div><div><label class="m">Année max</label><input id="fyMax" type="number" value="${filt.yMax}" oninput="filt.yMax=this.value;saveFilt();updateFiltCount()" onblur="fixYearOrder()"></div></div>
 <p class="m" style="margin-top:6px" id="filtCount">${DB.filter(matches).length} titre(s) correspondent aux critères.</p></div>
-<div class="card"><label class="m">Durée max (secondes, entre 10 et 120)</label><input type="number" value="${maxD}" min="10" max="120" oninput="maxD=+this.value||maxD" onblur="maxD=Math.min(120,Math.max(10,+this.value||20));this.value=maxD">
+<div class="card"><h3>⚙️ Paramètres</h3><div class="row"><div><label class="m">Écoute max (10–120 s)</label><input type="number" min="10" max="120" value="${SET.maxD}" onblur="setP('maxD',10,120,this)"></div><div><label class="m">Délai réponse (5–30 s)</label><input type="number" min="5" max="30" value="${SET.tRep}" onblur="setP('tRep',5,30,this)"></div><div><label class="m">Délai année (5–30 s)</label><input type="number" min="5" max="30" value="${SET.tAnn}" onblur="setP('tAnn',5,30,this)"></div><div><label class="m">Points pour gagner (0 = aucun)</label><input type="number" min="0" max="999" value="${SET.win}" onblur="setP('win',0,999,this)"></div></div>
 <div class="row" style="margin-top:8px"><button class="p" onclick="nouvelle()">🆕 Nouvelle partie</button><button class="d" onclick="stopBtn()">⏹ Stop</button></div></div>
 <div class="card"><div id="ytw" style="margin-top:8px"><div>🎵</div><span id="yt"></span></div></div>
 <div class="card" id="pn"></div><div class="card"><h3>Classement</h3><div id="lb"></div></div>`:`
@@ -82,6 +122,7 @@ ${langOptions().length?`<p class="m" style="margin-top:10px">Langues</p><div cla
 <div class="card"><h3>Coller une liste</h3><p class="m">Une ligne par titre : lien ; artiste ; titre ; année ; genre ; langue (tous les champs sont obligatoires)</p><textarea id="bl" rows="5" style="width:100%;background:#171329;color:#f3efe8;border:1px solid #352d54;border-radius:10px;padding:10px"></textarea><button class="p" style="margin-top:6px" onclick="bulk()">Importer</button><p class="m" id="bm"></p></div>
 <div class="card"><div class="row"><button onclick="exp()">⬇️ Exporter</button><label><button onclick="$('imp').click()" style="width:100%">⬆️ Importer</button></label><button onclick="changeCode()">🔑 Code</button></div><input id="imp" type="file" accept=".json" hidden onchange="imp(this)">
 <p class="m" style="margin-top:8px">${delCount()} titre(s) supprimé(s) localement sur cet appareil. <button class="g" onclick="resetDevice()">↺ Réinitialiser cet appareil</button></p></div>
+<div class="card"><h3>🎶 Mode playlist</h3><p class="m">Écoute les titres en entier, dans un ordre aléatoire, enchaînés automatiquement. Les filtres (genres, langues, années) se règlent dans l'onglet Jeu : ${DB.filter(matches).length} titre(s) sélectionné(s).</p><button class="p" onclick="plStart()">▶ Lancer la playlist</button></div>
 <div class="card"><h3>🚩 Signalements (${reports().length})</h3>${reports().length?reports().map(r=>`<div class="ld"><span>${e(r.artist)} — ${e(r.title)}<br><span class="m">${new Date(r.ts).toLocaleString('fr-FR')}${r.reason?' · '+e(r.reason):''}</span></span></div>`).join('')+'<div class="row" style="margin-top:8px"><button class="g" onclick="exportReports()">⬇️ Exporter</button><button class="g" onclick="clearReports()">Effacer</button></div>':'<p class="m">Aucun signalement.</p>'}</div>
 <div class="card">${DB.map((t,i)=>`<div class="ld"><span>${e(t.artist)} — ${e(t.title)} (${t.year})${t.genre||t.langue?` <span class="m">· ${e([t.genre,t.langue].filter(Boolean).join(' · '))}</span>`:''}</span><span><button class="g" onclick="pick(${i})">▶</button> <button class="g" onclick="editTrack(${i})">✎</button> <button class="g" onclick="del(${i})">✕</button></span></div>`).join('')||'<p class="m">Base vide.</p>'}</div>`);if(tab=='g'){upd();if(g.phase=='ready')arm(g.next);else if(g.phase=='wait')mk(g.cur,g.pos,resume)}
 if(tab=='b'&&editIdx>-1){$('fu').value='https://www.youtube.com/watch?v='+DB[editIdx].vid;$('fa').value=DB[editIdx].artist;$('ft').value=DB[editIdx].title;$('fy').value=DB[editIdx].year;$('fg').value=DB[editIdx].genre||'';$('fl').value=DB[editIdx].langue||''}}
@@ -132,51 +173,53 @@ function arm(t){if(!['idle','ready','done'].includes(g.phase))return;clearTimeou
 if(!DB.length){rmIframe();g.phase='idle';g.msg="Ajoute des titres dans l'onglet Base.";upd();return}
 t=t||pickRnd();if(!t){rmIframe();g.phase='idle';g.msg="Aucun titre ne correspond aux filtres choisis.";upd();return}
 g.next=t;g.phase='ready';g.msg='👆 Prêt : touche le carré noir pour lancer la musique';upd();mk(t,0,go)}
-function go(){if(g.phase!='ready'||!g.next)return;if(BL)window.removeEventListener('blur',BL);g.cur=g.next;g.played.push(g.cur.id);g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.phase='play';g.msg='🎧 Buzz !';g.rem=maxD*1000;g.pos=0;g.t1=Date.now();upd();tm=setTimeout(endRound,g.rem)}
-function pauseBy(n){clearTimeout(tm);const el=Date.now()-g.t1;g.rem-=el;g.pos+=el/1000;rmIframe();g.buzz.push(n);g.active=g.buzz.length-1;g.j={};g.phase='judge';g.msg='🎤 Au tour de '+n;upd()}
-function resume(){if(g.phase!='wait')return;if(BL)window.removeEventListener('blur',BL);g.phase='play';g.msg='🎧 Buzz !';g.t1=Date.now();upd();tm=setTimeout(endRound,g.rem)}
+function go(){if(g.phase!='ready'||!g.next)return;if(BL)window.removeEventListener('blur',BL);g.cur=g.next;g.played.push(g.cur.id);g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.phase='play';g.msg='🎧 Buzz !';g.rem=SET.maxD*1000;g.pos=0;g.t1=Date.now();g.tk='mus';g.tEnd=g.t1+g.rem;g.exp=false;upd();tm=setTimeout(endRound,g.rem)}
+function pauseBy(n){clearTimeout(tm);const el=Date.now()-g.t1;g.rem-=el;g.pos+=el/1000;rmIframe();g.buzz.push(n);g.active=g.buzz.length-1;g.j={};g.phase='judge';g.msg='🎤 Au tour de '+n;startAns();upd()}
+function resume(){if(g.phase!='wait')return;if(BL)window.removeEventListener('blur',BL);g.phase='play';g.msg='🎧 Buzz !';g.t1=Date.now();g.tk='mus';g.tEnd=g.t1+g.rem;g.exp=false;upd();tm=setTimeout(endRound,g.rem)}
 function endRound(){clearTimeout(tm);rmIframe();if(g.cur&&g.phase=='play')rev()}
-function wrong(){if(g.active+1<g.buzz.length){g.active++;g.j={};g.msg='🎤 Au tour de '+g.buzz[g.active];upd();return}
+function wrong(){if(g.active+1<g.buzz.length){g.active++;g.j={};g.msg='🎤 Au tour de '+g.buzz[g.active];startAns();upd();return}
 if(g.buzz.length>=Object.keys(conns).length||g.rem<=500){rev();return}
-g.phase='wait';g.msg='👆 Touche le carré noir pour reprendre la musique';upd();mk(g.cur,g.pos,resume)}
+g.phase='wait';g.tEnd=0;g.msg='👆 Touche le carré noir pour reprendre la musique';upd();mk(g.cur,g.pos,resume)}
 function yearEnd(){const b=g.buzz[g.active];if(b&&yv&&g.cur){const d=Math.abs(+yv-g.cur.year);g.scores[b]=(g.scores[b]||0)+(d==0?2:d<=3?1:0)}yv='';rev()}
-function nouvelle(){const go=()=>{clearTimeout(tm);const o=$('sf');if(o)o.remove();Object.keys(g.scores).forEach(k=>g.scores[k]=0);g.played=[];g.next=null;g.cur=null;g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.phase='idle';arm()};
+function nouvelle(){const go=()=>{clearTimeout(tm);const o=$('sf');if(o)o.remove();Object.keys(g.scores).forEach(k=>g.scores[k]=0);g.played=[];g.next=null;g.cur=null;g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.winner=null;g.tEnd=0;g.exp=false;g.phase='idle';arm()};
 if(Object.values(g.scores).some(v=>v>0))askConfirm('Remettre les scores à zéro et démarrer une nouvelle partie ?',go);else go()}
 function stopBtn(){clearTimeout(tm);const o=$('sf');if(o)o.remove();if(g.phase=='idle')return;if(g.phase=='ready'){arm();return}rev()}
 function refuse(){if(g.active+1<g.buzz.length)nxt();else rev()}
 function pick(i){tab='g';hostUI();arm(DB[i])}
-function judge(k){const n=g.buzz[g.active];if(!n)return;const s=p=>g.scores[n]=(g.scores[n]||0)+p;
-if(k=='a'&&!g.j.a){s(1);g.j.a=1}if(k=='t'&&!g.j.t){s(1);g.j.t=1}
+function judge(k){const n=g.buzz[g.active];if(!n)return;const s=p=>g.scores[n]=(g.scores[n]||0)+p,had=g.j.a||g.j.t;
+if(k=='a'&&!g.j.a){s(1);g.j.a=1;snd('ok')}if(k=='t'&&!g.j.t){s(1);g.j.t=1;snd('ok')}
+if(!had&&(g.j.a||g.j.t)){g.tk='yr';g.tEnd=Date.now()+SET.tAnn*1000;g.exp=false}
 if(k=='y'&&!g.j.y&&yv){const d=Math.abs(+yv-g.cur.year);s(d==0?2:d<=3?1:0);g.j.y=1}upd()}
-function nxt(){if(g.active+1<g.buzz.length){g.active++;g.j={};g.msg='🎤 Au tour de '+g.buzz[g.active]}else g.phase='done';upd()}
-function rev(){const t=g.cur;g.reveal={a:t.artist,t:t.title,y:t.year};g.phase='done';arm()}
+function nxt(){if(g.active+1<g.buzz.length){g.active++;g.j={};g.msg='🎤 Au tour de '+g.buzz[g.active];startAns()}else{g.phase='done';g.tEnd=0}upd()}
+function rev(){if(g.phase=='over')return;const t=g.cur;g.reveal={a:t.artist,t:t.title,y:t.year};g.phase='done';g.tEnd=0;g.tk='';if(checkWin())return;arm()}
 function bz(){return g.buzz.length?`<ul>${g.buzz.map((n,i)=>`<li class="${g.phase=='judge'&&i==g.active?'on':''}">${i+1}. ${e(n)}</li>`).join('')}</ul>`:'<p class="m">Aucun buzz.</p>'}
-function upd(){const st={phase:g.phase,buzz:g.buzz,active:g.active,scores:g.scores,msg:g.phase=='ready'?'⏳ Prépare-toi, le prochain titre arrive…':g.phase=='wait'?'⏸ Musique en pause…':g.msg,reveal:g.reveal};Object.values(conns).forEach(c=>c.open&&c.send({t:'s',s:st}));
+function upd(){const st={phase:g.phase,buzz:g.buzz,active:g.active,scores:g.scores,msg:g.phase=='ready'?'⏳ Prépare-toi, le prochain titre arrive…':g.phase=='wait'?'⏸ Musique en pause…':g.msg,reveal:g.reveal,tl:g.tEnd?Math.max(0,g.tEnd-Date.now()):0,tk:g.tk||'',exp:!!g.exp,yr:!!(g.j.a||g.j.t),winner:g.winner||null,wp:g.winner?g.scores[g.winner]:0};Object.values(conns).forEach(c=>c.open&&c.send({t:'s',s:st}));
 if(!$('pn'))return;$('np').textContent=Object.keys(conns).length+' joueur(s) connecté(s)';
-let h=`<div class="m">${e(g.msg)}</div>`+((g.phase=='ready'?g.next:g.cur)&&g.phase!='idle'?`<div class="big">${g.phase=='ready'?'⏭ À suivre :':'🎵'} ${e((g.phase=='ready'?g.next:g.cur).artist)} — ${e((g.phase=='ready'?g.next:g.cur).title)} (${(g.phase=='ready'?g.next:g.cur).year})</div>`:'')+bz();
+let h=`<div id="cd" class="cd"></div><div class="m">${e(g.msg)}</div>`+((g.phase=='ready'?g.next:g.cur)&&g.phase!='idle'?`<div class="big">${g.phase=='ready'?'⏭ À suivre :':'🎵'} ${e((g.phase=='ready'?g.next:g.cur).artist)} — ${e((g.phase=='ready'?g.next:g.cur).title)} (${(g.phase=='ready'?g.next:g.cur).year})</div>`:'')+bz();
 if(g.phase=='ready')h+=`<p class="m" style="margin-top:6px">Le titre ne se lance pas ? <button class="g" onclick="arm(g.next)">🔁 Réessayer</button> <button class="g" onclick="arm()">⏭ Changer de titre</button></p>`;
 if(g.phase=='play')h+=`<p class="m" style="margin-top:6px">Toujours pas de son ? <button class="g" onclick="retryCur()">🔁 Réessayer</button> <button class="g" onclick="rev()">⏭ Passer ce titre</button></p>`;
 if(g.phase=='wait')h+=`<p class="m" style="margin-top:6px">La reprise ne fonctionne pas ? <button class="g" onclick="mk(g.cur,g.pos,resume)">🔁 Réessayer</button> <button class="g" onclick="rev()">⏭ Passer ce titre</button></p>`;
 if(g.phase=='judge'){h+=`<div class="big" style="margin:10px 0">🎤 ${e(g.buzz[g.active])}</div><div class="row"><button ${g.j.a?'disabled':''} onclick="judge('a')">✅ Artiste +1</button><button ${g.j.t?'disabled':''} onclick="judge('t')">✅ Titre +1</button></div>
-<div class="row" style="margin-top:8px"><input type="number" placeholder="Année annoncée" value="${yv}" oninput="yv=this.value"><button class="p" onclick="yearEnd()">Valider l'année et suivant</button></div>
+${g.j.a||g.j.t?`<div class="row" style="margin-top:8px"><input type="number" placeholder="Année annoncée" value="${yv}" oninput="yv=this.value"><button class="p" onclick="yearEnd()">Valider l'année et suivant</button></div>`:`<p class="m" style="margin-top:8px">📅 L'année n'est possible qu'après une bonne réponse (artiste ou titre).</p>`}
 <div class="row" style="margin-top:8px"><button class="d" onclick="wrong()">❌ Mauvaise réponse</button><button onclick="rev()">✔️ Terminer sans année</button></div>`}
 if(g.phase=='wait')h+=`<p class="m">Musique en pause. Touche le carré noir pour la reprendre. Les joueurs peuvent encore buzzer.</p>`;
 if(g.phase=='done')h+=`<button style="margin-top:8px" onclick="rev()">👁 Révéler</button>`;
 if(g.cur&&g.phase!='idle')h+=`<p style="margin-top:10px"><button class="g" onclick="reportTrack()">🚩 Signaler ce titre</button></p>`;
-$('pn').innerHTML=h;
+$('pn').innerHTML=h;cdUpd();
 $('lb').innerHTML=Object.entries(g.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')||'<p class="m">—</p>'}
 /* ================= PLAYER ================= */
-let S=null,me='',pc;
+let S=null,me='',pc,wm=false,ww=false;
 function joinUI(){A.innerHTML=`<div class="card"><h3>Rejoindre</h3><input id="jc" placeholder="Code de la partie" value="${hash()}" maxlength="4"><input id="jn" placeholder="Ton pseudo" maxlength="16"><button class="p" style="margin-top:8px" onclick="join()">Rejoindre</button><p class="m" id="jm"></p></div>`}
 function join(){const c=$('jc').value.trim().toUpperCase(),n=$('jn').value.trim();if(!c||!n)return;$('jm').textContent='Connexion…';
 peer=new Peer();peer.on('error',()=>$('jm')&&($('jm').textContent='❌ Connexion impossible (code ?)'));peer.on('open',()=>{pc=peer.connect('bt-'+c,{reliable:true});
-pc.on('open',()=>pc.send({t:'join',name:n}));pc.on('data',m=>{if(m.t=='me')me=m.name;if(m.t=='s'){S=m.s;pui()}});pc.on('close',()=>{A.innerHTML='<div class="card">Connexion perdue. Recharge la page.</div>'})})}
-function buzz(){pc.send({t:'buzz'});this.disabled=true}
-function pui(){if(!S)return;const b=S.buzz.includes(me);let m='';
+pc.on('open',()=>pc.send({t:'join',name:n}));pc.on('data',m=>{if(m.t=='me')me=m.name;if(m.t=='s'){S=m.s;S.at=Date.now();pui()}});pc.on('close',()=>{A.innerHTML='<div class="card">Connexion perdue. Recharge la page.</div>'})})}
+function buzz(){pc.send({t:'buzz'});this.disabled=true;vib(80);snd('buzz')}
+function pui(){if(!S)return;const b=S.buzz.includes(me);let m='';const my=S.phase=='judge'&&S.buzz[S.active]==me;if(my&&!wm)vib([150,80,150]);wm=my;if(S.winner&&!ww)snd('win');ww=!!S.winner;
+const W=S.winner?(S.winner==me?`<div id="vic" onclick="this.remove()"><div class="conf">${conf()}</div><div class="vt">🏆<br>VICTOIRE !<br><small>${S.wp} points</small></div></div>`:`<div class="card" style="text-align:center;border-color:var(--a)"><div class="big">🏆 ${e(S.winner)} remporte la partie avec ${S.wp} points !</div></div>`):'';
 if(S.phase=='play'||S.phase=='wait')m=`<button class="buzz" onclick="buzz.call(this)" ${b?'disabled':''}>${b?'✋ Buzzé !':'🔴 BUZZ'}</button>`;
-else if(S.phase=='judge'){const c=S.buzz[S.active];m=(c==me?'<p class="big">🎤 À toi de répondre !</p>':`<p class="big">Écoute, ${e(c)} répond.</p>`)+(b?'':'<button class="buzz" style="padding:24px 0" onclick="buzz.call(this)">🔴 BUZZ</button>')}
+else if(S.phase=='judge'){const c=S.buzz[S.active];m=(c==me?'<p class="big">🎤 À toi de répondre !</p>'+(S.yr?'<p class="big">📅 Donne aussi l\'année !</p>':''):`<p class="big">Écoute, ${e(c)} répond.</p>`)+(b?'':'<button class="buzz" style="padding:24px 0" onclick="buzz.call(this)">🔴 BUZZ</button>')}
 else if(S.reveal)m=`<div class="big">${e(S.reveal.a)} — ${e(S.reveal.t)}</div><div class="m">${S.reveal.y}</div>`;else m=`<p class="m">${e(S.msg)}</p>`;
-A.innerHTML=`<div class="card"><div class="m">${e(me)}</div>${m}</div><div class="card"><h3>Ordre des buzz</h3>${S.buzz.length?`<ul>${S.buzz.map((n,i)=>`<li class="${S.phase=='judge'&&i==S.active?'on':''}">${i+1}. ${e(n)}</li>`).join('')}</ul>`:'<p class="m">—</p>'}</div>
+A.innerHTML=`${W}<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="card"><div class="m">${e(me)}</div><div id="cd" class="cd"></div>${m}</div><div class="card"><h3>Ordre des buzz</h3>${S.buzz.length?`<ul>${S.buzz.map((n,i)=>`<li class="${S.phase=='judge'&&i==S.active?'on':''}">${i+1}. ${e(n)}</li>`).join('')}</ul>`:'<p class="m">—</p>'}</div>
 <div class="card"><h3>Classement</h3>${Object.entries(S.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')}</div>
 ${dbInfoBlock()}`;refreshDbInfo()}
 LOADED=fetch('titres.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():[]).then(L=>{const del=JSON.parse(localStorage.getItem('bt_del')||'[]');let n=0,maj=0;L.forEach(x=>{const v=x.vid||vid(x.url||'');if(!v||!x.artist||!x.title||!x.year)return;const id=x.id||v;if(del.includes(id))return;
