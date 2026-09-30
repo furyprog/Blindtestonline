@@ -13,7 +13,9 @@ input{font:inherit;width:100%;background:#171329;color:var(--t);border:1px solid
 .row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:110px}.m{color:var(--m);font-size:14px}.big{font-size:19px;font-weight:800}
 .buzz{width:100%;padding:44px 0;font-size:28px;border-radius:24px;background:linear-gradient(#ffb545,#e6942a);color:#1a1526}
 li{list-style:none;padding:8px 10px;margin-bottom:6px;border-radius:10px;background:#171329}li.on{background:var(--a);color:#1a1526;font-weight:700}ul{padding:0;margin:0}
-.ld{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #2c2648}
+.ld{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px 10px;padding:6px 0;border-bottom:1px solid #2c2648}
+.ld>span:first-child{flex:1 1 180px;min-width:0;word-break:break-word}
+.ld>span:last-child{flex:none;white-space:nowrap}
 #ytw{position:relative;width:200px;height:200px;margin:auto}#ytw>div{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;font-size:42px;pointer-events:none}
 #ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:20}
 #ov[hidden]{display:none}
@@ -41,7 +43,8 @@ function home(){A.innerHTML=`<h1>🎧 BUZZ · Blind Test</h1><div class="card"><
 /* ================= HOST ================= */
 let LOADED=Promise.resolve(),mode=localStorage.getItem('bt_mode')||'api',peer,conns={},code,g,yt,ytReady=false,tm,maxD=20,yv='',tab='g',testing=false;
 function onYouTubeIframeAPIReady(){ytReady=true}
-function host(){code=Math.random().toString(36).slice(2,6).toUpperCase();g={phase:'idle',buzz:[],active:-1,scores:{},cur:null,j:{},reveal:null,msg:'Clique sur « Nouvelle partie » pour commencer.',played:[]};
+function genCode(){const c='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<4;i++)s+=c[Math.random()*c.length|0];return s}
+function host(){code=genCode();g={phase:'idle',buzz:[],active:-1,scores:{},cur:null,j:{},reveal:null,msg:'Clique sur « Nouvelle partie » pour commencer.',played:[]};
 peer=new Peer('bt-'+code);peer.on('error',x=>{if(x.type=='unavailable-id')host();else msg('Réseau : '+x.type)});
 peer.on('connection',c=>{c.on('data',m=>{if(m.t=='join'){let n=(m.name||'?').slice(0,16),k=n,i=2;while(conns[k])k=n+i++;c.n=k;conns[k]=c;g.scores[k]??=0;c.send({t:'me',name:k});upd()}
 if(m.t=='buzz'&&c.n&&!g.buzz.includes(c.n)){if(g.phase=='play'){pauseBy(c.n)}else if(g.phase=='judge'){g.buzz.push(c.n);upd()}else if(g.phase=='wait'){rmIframe();g.buzz.push(c.n);g.active=g.buzz.length-1;g.j={};g.phase='judge';g.msg='🎤 Au tour de '+c.n;upd()}}});
@@ -61,7 +64,7 @@ ${langOptions().length?`<p class="m" style="margin-top:10px">Langues</p><div cla
 <div class="row"><input id="fy" type="number" placeholder="Année"><select id="fg" style="font:inherit;width:100%;background:#171329;color:#f3efe8;border:1px solid #352d54;border-radius:10px;padding:11px;margin:4px 0"><option value="">Genre…</option>${GENRES.map(x=>`<option>${e(x)}</option>`).join('')}</select></div>
 <input id="fl" list="langList" placeholder="Langue (ex: Français, Anglais…)"><datalist id="langList">${langOptions().map(x=>`<option value="${e(x)}">`).join('')}</datalist>
 <div class="row" style="margin-top:6px"><button class="p" onclick="add()">${editIdx>-1?'💾 Mettre à jour':'+ Ajouter'}</button>${editIdx>-1?'<button class="g" onclick="cancelEdit()">Annuler</button>':''}</div><p class="m" id="fm"></p></div>
-<div class="card"><h3>Coller une liste</h3><p class="m">Une ligne par titre : lien ; artiste ; titre ; année ; genre ; langue (les deux derniers sont facultatifs)</p><textarea id="bl" rows="5" style="width:100%;background:#171329;color:#f3efe8;border:1px solid #352d54;border-radius:10px;padding:10px"></textarea><button class="p" style="margin-top:6px" onclick="bulk()">Importer</button><p class="m" id="bm"></p></div>
+<div class="card"><h3>Coller une liste</h3><p class="m">Une ligne par titre : lien ; artiste ; titre ; année ; genre ; langue (tous les champs sont obligatoires)</p><textarea id="bl" rows="5" style="width:100%;background:#171329;color:#f3efe8;border:1px solid #352d54;border-radius:10px;padding:10px"></textarea><button class="p" style="margin-top:6px" onclick="bulk()">Importer</button><p class="m" id="bm"></p></div>
 <div class="card"><div class="row"><button onclick="exp()">⬇️ Exporter</button><label><button onclick="$('imp').click()" style="width:100%">⬆️ Importer</button></label><button onclick="changeCode()">🔑 Code</button></div><input id="imp" type="file" accept=".json" hidden onchange="imp(this)">
 <p class="m" style="margin-top:8px">${delCount()} titre(s) supprimé(s) localement sur cet appareil. <button class="g" onclick="resetDevice()">↺ Réinitialiser cet appareil</button></p></div>
 <div class="card">${DB.map((t,i)=>`<div class="ld"><span>${e(t.artist)} — ${e(t.title)} (${t.year})${t.genre||t.langue?` <span class="m">· ${e([t.genre,t.langue].filter(Boolean).join(' · '))}</span>`:''}</span><span><button class="g" onclick="pick(${i})">▶</button> <button class="g" onclick="editTrack(${i})">✎</button> <button class="g" onclick="del(${i})">✕</button></span></div>`).join('')||'<p class="m">Base vide.</p>'}</div>`);if(tab=='g'){upd();if(g.phase=='ready')arm(g.next);else if(g.phase=='wait')mk(g.cur,g.pos,resume)}
@@ -74,11 +77,11 @@ function msg(s){g.msg=s;upd()}
 let editIdx=-1;
 function editTrack(i){editIdx=i;hostUI()}
 function cancelEdit(){editIdx=-1;hostUI()}
-function add(){const v=vid($('fu').value),a=$('fa').value.trim(),t=$('ft').value.trim(),y=+$('fy').value,gg=$('fg').value,l=$('fl').value.trim();if(!v||!a||!t||!y){$('fm').textContent='⚠️ Lien YouTube valide, artiste, titre et année requis.';return}
+function add(){const v=vid($('fu').value),a=$('fa').value.trim(),t=$('ft').value.trim(),y=+$('fy').value,gg=$('fg').value,l=$('fl').value.trim();if(!v||!a||!t||!y||!gg||!l){$('fm').textContent='⚠️ Tous les champs sont requis : lien YouTube, artiste, titre, année, genre et langue.';return}
 if(editIdx>-1){const tr=DB[editIdx];tr.vid=v;tr.artist=a;tr.title=t;tr.year=y;tr.genre=gg;tr.langue=l;editIdx=-1;save();hostUI();return}
 if(DB.some(d=>d.id==v)){$('fm').textContent='Ce titre est déjà dans la base.';return}DB.push({id:v,vid:v,artist:a,title:t,year:y,genre:gg,langue:l});save();hostUI()}
 function del(i){if(i===editIdx)editIdx=-1;const t=DB.splice(i,1)[0],d=JSON.parse(localStorage.getItem('bt_del')||'[]');d.push(t.id);localStorage.setItem('bt_del',JSON.stringify(d));save();hostUI()}
-function bulk(){let n=0,bad=0;$('bl').value.split('\n').forEach(l=>{if(!l.trim())return;const q=l.split(/[;\t|]/).map(x=>x.trim()),v=vid(q[0]||''),y=+q[3];if(!v||!q[1]||!q[2]||!y){bad++;return}if(DB.some(d=>d.id==v))return;DB.push({id:v,vid:v,artist:q[1],title:q[2],year:y,genre:q[4]||'',langue:q[5]||''});n++});save();hostUI();$('bm').textContent=n+' ajouté(s)'+(bad?', '+bad+' ligne(s) ignorée(s)':'')}
+function bulk(){let n=0,bad=0;$('bl').value.split('\n').forEach(l=>{if(!l.trim())return;const q=l.split(/[;\t|]/).map(x=>x.trim()),v=vid(q[0]||''),y=+q[3];if(!v||!q[1]||!q[2]||!y||!q[4]||!q[5]){bad++;return}if(DB.some(d=>d.id==v))return;DB.push({id:v,vid:v,artist:q[1],title:q[2],year:y,genre:q[4],langue:q[5]});n++});save();hostUI();$('bm').textContent=n+' ajouté(s)'+(bad?', '+bad+' ligne(s) ignorée(s)':'')}
 function exp(){const b=new Blob([JSON.stringify(DB)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='blindtest-base.json';a.click()}
 function imp(i){const f=i.files[0];if(!f)return;f.text().then(x=>{try{DB=DB.concat(JSON.parse(x).filter(t=>t.vid&&!DB.some(d=>d.id==t.id)));save();hostUI()}catch(_){alert('Fichier invalide')}})}
 /* lecture : le carré noir est le bouton de lancement */
