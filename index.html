@@ -62,9 +62,13 @@ ${langOptions().length?`<p class="m" style="margin-top:10px">Langues</p><div cla
 <input id="fl" list="langList" placeholder="Langue (ex: Français, Anglais…)"><datalist id="langList">${langOptions().map(x=>`<option value="${e(x)}">`).join('')}</datalist>
 <div class="row" style="margin-top:6px"><button class="p" onclick="add()">${editIdx>-1?'💾 Mettre à jour':'+ Ajouter'}</button>${editIdx>-1?'<button class="g" onclick="cancelEdit()">Annuler</button>':''}</div><p class="m" id="fm"></p></div>
 <div class="card"><h3>Coller une liste</h3><p class="m">Une ligne par titre : lien ; artiste ; titre ; année ; genre ; langue (les deux derniers sont facultatifs)</p><textarea id="bl" rows="5" style="width:100%;background:#171329;color:#f3efe8;border:1px solid #352d54;border-radius:10px;padding:10px"></textarea><button class="p" style="margin-top:6px" onclick="bulk()">Importer</button><p class="m" id="bm"></p></div>
-<div class="card"><div class="row"><button onclick="exp()">⬇️ Exporter</button><label><button onclick="$('imp').click()" style="width:100%">⬆️ Importer</button></label><button onclick="changeCode()">🔑 Code</button></div><input id="imp" type="file" accept=".json" hidden onchange="imp(this)"></div>
+<div class="card"><div class="row"><button onclick="exp()">⬇️ Exporter</button><label><button onclick="$('imp').click()" style="width:100%">⬆️ Importer</button></label><button onclick="changeCode()">🔑 Code</button></div><input id="imp" type="file" accept=".json" hidden onchange="imp(this)">
+<p class="m" style="margin-top:8px">${delCount()} titre(s) supprimé(s) localement sur cet appareil. <button class="g" onclick="resetDevice()">↺ Réinitialiser cet appareil</button></p></div>
 <div class="card">${DB.map((t,i)=>`<div class="ld"><span>${e(t.artist)} — ${e(t.title)} (${t.year})${t.genre||t.langue?` <span class="m">· ${e([t.genre,t.langue].filter(Boolean).join(' · '))}</span>`:''}</span><span><button class="g" onclick="pick(${i})">▶</button> <button class="g" onclick="editTrack(${i})">✎</button> <button class="g" onclick="del(${i})">✕</button></span></div>`).join('')||'<p class="m">Base vide.</p>'}</div>`);if(tab=='g'){upd();if(g.phase=='ready')arm(g.next);else if(g.phase=='wait')mk(g.cur,g.pos,resume)}
 if(tab=='b'&&editIdx>-1){$('fu').value='https://www.youtube.com/watch?v='+DB[editIdx].vid;$('fa').value=DB[editIdx].artist;$('ft').value=DB[editIdx].title;$('fy').value=DB[editIdx].year;$('fg').value=DB[editIdx].genre||'';$('fl').value=DB[editIdx].langue||''}}
+function delCount(){return JSON.parse(localStorage.getItem('bt_del')||'[]').length}
+function resetDevice(){askConfirm("Effacer les titres supprimés localement sur cet appareil et recharger toute la base depuis titres.json ?",()=>{
+localStorage.removeItem('bt_del');localStorage.removeItem('bt_db');location.reload()})}
 function langOptions(){return [...new Set(DB.map(t=>t.langue).filter(Boolean))].sort()}
 function msg(s){g.msg=s;upd()}
 let editIdx=-1;
