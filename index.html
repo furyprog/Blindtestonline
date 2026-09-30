@@ -81,14 +81,14 @@ function imp(i){const f=i.files[0];if(!f)return;f.text().then(x=>{try{DB=DB.conc
 function askConfirm(msg,yes){$('ovmsg').textContent=msg;$('ovinput').style.display='none';$('ov').hidden=false;$('ovyes').onclick=()=>{$('ov').hidden=true;yes()}}
 function askPrompt(msg,cb,type){$('ovmsg').textContent=msg;const i=$('ovinput');i.style.display='block';i.type=type||'password';i.value='';$('ov').hidden=false;setTimeout(()=>i.focus(),50);
 const submit=()=>{$('ov').hidden=true;i.style.display='none';cb(i.value)};$('ovyes').onclick=submit;i.onkeydown=ev=>{if(ev.key=='Enter')submit()}}
+const ADMIN_HASH='4b3a338b928e1c20503a3eda318c25ac9d38e73f6fbcfefba841563a6cba65c7';
+async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function effHash(){return localStorage.getItem('bt_admin_hash')||ADMIN_HASH}
 let admOK=false;
 function openBase(){if(admOK){tab='b';hostUI();return}
-const code=localStorage.getItem('bt_admin');
-if(!code)askPrompt('Aucun code défini. Choisis un code administrateur pour protéger la base :',v=>{if(v){localStorage.setItem('bt_admin',v);admOK=true;tab='b';hostUI()}});
-else askPrompt('Code administrateur :',v=>{if(v===code){admOK=true;tab='b';hostUI()}else alert('Code incorrect.')})}
-function changeCode(){const code=localStorage.getItem('bt_admin')||'';
-askPrompt('Code administrateur actuel :',old=>{if(old!==code){alert('Code incorrect.');return}
-askPrompt('Nouveau code :',v=>{if(v){localStorage.setItem('bt_admin',v);alert('Code mis à jour.')}})})}
+askPrompt('Code administrateur :',async v=>{const h=await sha256(v||'');if(h===effHash()){admOK=true;tab='b';hostUI()}else alert('Code incorrect.')})}
+function changeCode(){askPrompt('Code administrateur actuel :',async old=>{const oh=await sha256(old||'');if(oh!==effHash()){alert('Code incorrect.');return}
+askPrompt('Nouveau code :',async v=>{if(v){const nh=await sha256(v);localStorage.setItem('bt_admin_hash',nh);alert('Code mis à jour sur cet appareil.')}})})}
 let BL;
 function rmIframe(){const o=$('sf');if(o)o.remove()}
 function mk(t,pos,cb){rmIframe();if(BL)window.removeEventListener('blur',BL);const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow='autoplay';f.style.border=0;
