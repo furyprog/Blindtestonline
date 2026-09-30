@@ -44,12 +44,12 @@ const qr=t=>{const q=qrcode(0,'M');q.addData(t);q.make();return q.createDataURL(
 const vid=u=>(u.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/)||[])[1];
 const hash=()=>location.hash.replace('#','').toUpperCase();
 let commitInfo='';
-fetch('https://api.github.com/repos/furyprog/Blindtestonline/commits?path=titres.json&per_page=1').then(r=>r.ok?r.json():[]).then(a=>{
+fetch('https://api.github.com/repos/furyprog/buzzhit/commits?path=titres.json&per_page=1').then(r=>r.ok?r.json():[]).then(a=>{
 if(a&&a[0]){const d=new Date(a[0].commit.committer.date);commitInfo=d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});refreshDbInfo()}}).catch(()=>{});
 function dbInfoText(){return DB.length+' titres'+(commitInfo?' · base mise à jour le '+commitInfo:' · date de mise à jour indisponible')}
 function refreshDbInfo(){const el=$('dbInfo');if(el)el.textContent=dbInfoText()}
 function dbInfoBlock(){return '<p class="m" id="dbInfo">'+dbInfoText()+' <button class="g" style="padding:4px 8px;font-size:12px" onclick="checkUpdate()">🔄 Vérifier</button></p>'}
-function checkUpdate(){fetch('https://api.github.com/repos/furyprog/Blindtestonline/commits?path=titres.json&per_page=1').then(r=>r.ok?r.json():[]).then(a=>{
+function checkUpdate(){fetch('https://api.github.com/repos/furyprog/buzzhit/commits?path=titres.json&per_page=1').then(r=>r.ok?r.json():[]).then(a=>{
 if(!a||!a[0]){alert('Impossible de vérifier pour le moment.');return}
 const d=new Date(a[0].commit.committer.date),n=d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 if(n!==commitInfo)alert('⚠️ Une nouvelle version de la base est disponible (mise à jour le '+n+').\nRecharge la page pour l\'utiliser.');
