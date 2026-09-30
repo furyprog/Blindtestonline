@@ -37,6 +37,7 @@ function matches(t){if(filt.genres.length&&!filt.genres.includes(t.genre))return
 if(filt.yMin&&t.year<+filt.yMin)return false;if(filt.yMax&&t.year>+filt.yMax)return false;return true}
 function toggleFilt(kind,val){const l=filt[kind],i=l.indexOf(val);if(i>-1)l.splice(i,1);else l.push(val);saveFilt();hostUI()}
 function updateFiltCount(){const el=$('filtCount');if(el)el.textContent=DB.filter(matches).length+' titre(s) correspondent aux critères.'}
+function fixYearOrder(){if(filt.yMin!==''&&filt.yMax!==''&&+filt.yMin>+filt.yMax){const t=filt.yMin;filt.yMin=filt.yMax;filt.yMax=t;if($('fyMin'))$('fyMin').value=filt.yMin;if($('fyMax'))$('fyMax').value=filt.yMax;saveFilt()}updateFiltCount()}
 const qr=t=>{const q=qrcode(0,'M');q.addData(t);q.make();return q.createDataURL(5,2)};
 const vid=u=>(u.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/)||[])[1];
 const hash=()=>location.hash.replace('#','').toUpperCase();
@@ -55,7 +56,7 @@ A.innerHTML=`<div class="row" style="margin-bottom:12px"><button class="${tab=='
 <div class="card"><h3>Code : ${code}</h3><p class="m">Les joueurs ouvrent ce lien ou scannent :<br><b>${e(link)}</b></p><img src="${qr(link)}" width="130"><p class="m" id="np"></p></div>
 <div class="card"><h3>Filtres</h3><p class="m">Genres</p><div class="row" style="flex-wrap:wrap">${GENRES.map(x=>`<button class="${filt.genres.includes(x)?'p':'g'}" style="flex:none;font-size:12px;padding:8px 10px" onclick="toggleFilt('genres','${x.replace(/'/g,"\\'")}')">${e(x)}</button>`).join('')}</div>
 ${langOptions().length?`<p class="m" style="margin-top:10px">Langues</p><div class="row" style="flex-wrap:wrap">${langOptions().map(x=>`<button class="${filt.langues.includes(x)?'p':'g'}" style="flex:none;font-size:12px;padding:8px 10px" onclick="toggleFilt('langues','${x.replace(/'/g,"\\'")}')">${e(x)}</button>`).join('')}</div>`:''}
-<div class="row" style="margin-top:10px"><div><label class="m">Année min</label><input type="number" value="${filt.yMin}" oninput="filt.yMin=this.value;saveFilt();updateFiltCount()"></div><div><label class="m">Année max</label><input type="number" value="${filt.yMax}" oninput="filt.yMax=this.value;saveFilt();updateFiltCount()"></div></div>
+<div class="row" style="margin-top:10px"><div><label class="m">Année min</label><input id="fyMin" type="number" value="${filt.yMin}" oninput="filt.yMin=this.value;saveFilt();updateFiltCount()" onblur="fixYearOrder()"></div><div><label class="m">Année max</label><input id="fyMax" type="number" value="${filt.yMax}" oninput="filt.yMax=this.value;saveFilt();updateFiltCount()" onblur="fixYearOrder()"></div></div>
 <p class="m" style="margin-top:6px" id="filtCount">${DB.filter(matches).length} titre(s) correspondent aux critères.</p></div>
 <div class="card"><label class="m">Durée max (secondes, entre 10 et 120)</label><input type="number" value="${maxD}" min="10" max="120" oninput="maxD=+this.value||maxD" onblur="maxD=Math.min(120,Math.max(10,+this.value||20));this.value=maxD">
 <div class="row" style="margin-top:8px"><button class="p" onclick="nouvelle()">🆕 Nouvelle partie</button><button class="d" onclick="stopBtn()">⏹ Stop</button></div></div>
@@ -129,7 +130,9 @@ function rev(){const t=g.cur;g.reveal={a:t.artist,t:t.title,y:t.year};g.phase='d
 function bz(){return g.buzz.length?`<ul>${g.buzz.map((n,i)=>`<li class="${g.phase=='judge'&&i==g.active?'on':''}">${i+1}. ${e(n)}</li>`).join('')}</ul>`:'<p class="m">Aucun buzz.</p>'}
 function upd(){const st={phase:g.phase,buzz:g.buzz,active:g.active,scores:g.scores,msg:g.phase=='ready'?'⏳ Prépare-toi, le prochain titre arrive…':g.phase=='wait'?'⏸ Musique en pause…':g.msg,reveal:g.reveal};Object.values(conns).forEach(c=>c.open&&c.send({t:'s',s:st}));
 if(!$('pn'))return;$('np').textContent=Object.keys(conns).length+' joueur(s) connecté(s)';
-let h=`<div class="m">${e(g.msg)}</div>`+(g.cur&&g.phase!='idle'?`<div class="big">🎵 ${e(g.cur.artist)} — ${e(g.cur.title)} (${g.cur.year})</div>`:'')+bz();
+let h=`<div class="m">${e(g.msg)}</div>`+((g.phase=='ready'?g.next:g.cur)&&g.phase!='idle'?`<div class="big">${g.phase=='ready'?'⏭ À suivre :':'🎵'} ${e((g.phase=='ready'?g.next:g.cur).artist)} — ${e((g.phase=='ready'?g.next:g.cur).title)} (${(g.phase=='ready'?g.next:g.cur).year})</div>`:'')+bz();
+if(g.phase=='ready')h+=`<p class="m" style="margin-top:6px">Le titre ne se lance pas ? <button class="g" onclick="arm(g.next)">🔁 Réessayer</button> <button class="g" onclick="arm()">⏭ Changer de titre</button></p>`;
+if(g.phase=='wait')h+=`<p class="m" style="margin-top:6px">La reprise ne fonctionne pas ? <button class="g" onclick="mk(g.cur,g.pos,resume)">🔁 Réessayer</button> <button class="g" onclick="rev()">⏭ Passer ce titre</button></p>`;
 if(g.phase=='judge'){h+=`<div class="big" style="margin:10px 0">🎤 ${e(g.buzz[g.active])}</div><div class="row"><button ${g.j.a?'disabled':''} onclick="judge('a')">✅ Artiste +1</button><button ${g.j.t?'disabled':''} onclick="judge('t')">✅ Titre +1</button></div>
 <div class="row" style="margin-top:8px"><input type="number" placeholder="Année annoncée" value="${yv}" oninput="yv=this.value"><button class="p" onclick="yearEnd()">Valider l'année et suivant</button></div>
 <div class="row" style="margin-top:8px"><button class="d" onclick="wrong()">❌ Mauvaise réponse</button><button onclick="rev()">✔️ Terminer sans année</button></div>`}
