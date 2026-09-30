@@ -17,6 +17,7 @@ li{list-style:none;padding:8px 10px;margin-bottom:6px;border-radius:10px;backgro
 .ld>span:first-child{flex:1 1 180px;min-width:0;word-break:break-word}
 .ld>span:last-child{flex:none;white-space:nowrap}
 #ytw{position:relative;width:200px;height:200px;margin:auto}#ytw>div{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;font-size:42px;pointer-events:none}
+#lo{position:absolute;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;font-size:13px;text-align:center;padding:10px;color:var(--t);z-index:2}
 #ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:20}
 #ov[hidden]{display:none}
 #ov .box{background:var(--c);border:1px solid #352d54;border-radius:16px;padding:20px;max-width:340px;text-align:center}
@@ -42,7 +43,18 @@ function fixYearOrder(){if(filt.yMin!==''&&filt.yMax!==''&&+filt.yMin>+filt.yMax
 const qr=t=>{const q=qrcode(0,'M');q.addData(t);q.make();return q.createDataURL(5,2)};
 const vid=u=>(u.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/)||[])[1];
 const hash=()=>location.hash.replace('#','').toUpperCase();
-function home(){A.innerHTML=`<h1>🎧 BUZZ · Blind Test</h1><div class="card"><div class="row"><button class="p" onclick="host()">🎙 Modérateur</button><button onclick="joinUI()">🙋 Joueur</button></div></div>`;if(hash())joinUI()}
+let commitInfo='';
+fetch('https://api.github.com/repos/furyprog/Blindtestonline/commits?path=titres.json&per_page=1').then(r=>r.ok?r.json():[]).then(a=>{
+if(a&&a[0]){const d=new Date(a[0].commit.committer.date);commitInfo=d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});refreshDbInfo()}}).catch(()=>{});
+function dbInfoText(){return DB.length+' titres'+(commitInfo?' · base mise à jour le '+commitInfo:' · date de mise à jour indisponible')}
+function refreshDbInfo(){const el=$('dbInfo');if(el)el.textContent=dbInfoText()}
+function dbInfoBlock(){return '<p class="m" id="dbInfo">'+dbInfoText()+' <button class="g" style="padding:4px 8px;font-size:12px" onclick="checkUpdate()">🔄 Vérifier</button></p>'}
+function checkUpdate(){fetch('https://api.github.com/repos/furyprog/Blindtestonline/commits?path=titres.json&per_page=1').then(r=>r.ok?r.json():[]).then(a=>{
+if(!a||!a[0]){alert('Impossible de vérifier pour le moment.');return}
+const d=new Date(a[0].commit.committer.date),n=d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+if(n!==commitInfo)alert('⚠️ Une nouvelle version de la base est disponible (mise à jour le '+n+').\nRecharge la page pour l\'utiliser.');
+else alert('✅ Tu as bien la dernière version (mise à jour le '+commitInfo+').')}).catch(()=>alert('Impossible de vérifier pour le moment.'))}
+function home(){A.innerHTML=`<h1>🎧 BUZZ · Blind Test</h1><div class="card"><div class="row"><button class="p" onclick="host()">🎙 Modérateur</button><button onclick="joinUI()">🙋 Joueur</button></div>${dbInfoBlock()}</div>`;refreshDbInfo();if(hash())joinUI()}
 /* ================= HOST ================= */
 let LOADED=Promise.resolve(),mode=localStorage.getItem('bt_mode')||'api',peer,conns={},code,g,yt,ytReady=false,tm,maxD=20,yv='',tab='g',testing=false;
 function onYouTubeIframeAPIReady(){ytReady=true}
@@ -54,7 +66,7 @@ if(m.t=='buzz'&&c.n&&!g.buzz.includes(c.n)){if(g.phase=='play'){pauseBy(c.n)}els
 c.on('close',()=>{delete conns[c.n];upd()})});hostUI()}
 function hostUI(){yt=null;const link=location.href.split('#')[0]+'#'+code;
 A.innerHTML=`<div class="row" style="margin-bottom:12px"><button class="${tab=='g'?'p':''}" onclick="tab='g';hostUI()">🎮 Jeu</button><button class="${tab=='b'?'p':''}" onclick="openBase()">📚 Base (${DB.length})</button></div>`+(tab=='g'?`
-<div class="card"><h3>Code : ${code}</h3><p class="m">Les joueurs ouvrent ce lien ou scannent :<br><b>${e(link)}</b></p><img src="${qr(link)}" width="130"><p class="m" id="np"></p></div>
+<div class="card"><h3>Code : ${code}</h3><p class="m">Les joueurs ouvrent ce lien ou scannent :<br><b>${e(link)}</b></p><img src="${qr(link)}" width="130"><p class="m" id="np"></p>${dbInfoBlock()}</div>
 <div class="card"><h3>Filtres</h3><p class="m">Genres</p><div class="row" style="flex-wrap:wrap">${GENRES.map(x=>`<button class="${filt.genres.includes(x)?'p':'g'}" style="flex:none;font-size:12px;padding:8px 10px" onclick="toggleFilt('genres','${x.replace(/'/g,"\\'")}')">${e(x)}</button>`).join('')}</div>
 ${langOptions().length?`<p class="m" style="margin-top:10px">Langues</p><div class="row" style="flex-wrap:wrap">${langOptions().map(x=>`<button class="${filt.langues.includes(x)?'p':'g'}" style="flex:none;font-size:12px;padding:8px 10px" onclick="toggleFilt('langues','${x.replace(/'/g,"\\'")}')">${e(x)}</button>`).join('')}</div>`:''}
 <div class="row" style="margin-top:10px"><div><label class="m">Année min</label><input id="fyMin" type="number" value="${filt.yMin}" oninput="filt.yMin=this.value;saveFilt();updateFiltCount()" onblur="fixYearOrder()"></div><div><label class="m">Année max</label><input id="fyMax" type="number" value="${filt.yMax}" oninput="filt.yMax=this.value;saveFilt();updateFiltCount()" onblur="fixYearOrder()"></div></div>
@@ -70,9 +82,16 @@ ${langOptions().length?`<p class="m" style="margin-top:10px">Langues</p><div cla
 <div class="card"><h3>Coller une liste</h3><p class="m">Une ligne par titre : lien ; artiste ; titre ; année ; genre ; langue (tous les champs sont obligatoires)</p><textarea id="bl" rows="5" style="width:100%;background:#171329;color:#f3efe8;border:1px solid #352d54;border-radius:10px;padding:10px"></textarea><button class="p" style="margin-top:6px" onclick="bulk()">Importer</button><p class="m" id="bm"></p></div>
 <div class="card"><div class="row"><button onclick="exp()">⬇️ Exporter</button><label><button onclick="$('imp').click()" style="width:100%">⬆️ Importer</button></label><button onclick="changeCode()">🔑 Code</button></div><input id="imp" type="file" accept=".json" hidden onchange="imp(this)">
 <p class="m" style="margin-top:8px">${delCount()} titre(s) supprimé(s) localement sur cet appareil. <button class="g" onclick="resetDevice()">↺ Réinitialiser cet appareil</button></p></div>
+<div class="card"><h3>🚩 Signalements (${reports().length})</h3>${reports().length?reports().map(r=>`<div class="ld"><span>${e(r.artist)} — ${e(r.title)}<br><span class="m">${new Date(r.ts).toLocaleString('fr-FR')}${r.reason?' · '+e(r.reason):''}</span></span></div>`).join('')+'<div class="row" style="margin-top:8px"><button class="g" onclick="exportReports()">⬇️ Exporter</button><button class="g" onclick="clearReports()">Effacer</button></div>':'<p class="m">Aucun signalement.</p>'}</div>
 <div class="card">${DB.map((t,i)=>`<div class="ld"><span>${e(t.artist)} — ${e(t.title)} (${t.year})${t.genre||t.langue?` <span class="m">· ${e([t.genre,t.langue].filter(Boolean).join(' · '))}</span>`:''}</span><span><button class="g" onclick="pick(${i})">▶</button> <button class="g" onclick="editTrack(${i})">✎</button> <button class="g" onclick="del(${i})">✕</button></span></div>`).join('')||'<p class="m">Base vide.</p>'}</div>`);if(tab=='g'){upd();if(g.phase=='ready')arm(g.next);else if(g.phase=='wait')mk(g.cur,g.pos,resume)}
 if(tab=='b'&&editIdx>-1){$('fu').value='https://www.youtube.com/watch?v='+DB[editIdx].vid;$('fa').value=DB[editIdx].artist;$('ft').value=DB[editIdx].title;$('fy').value=DB[editIdx].year;$('fg').value=DB[editIdx].genre||'';$('fl').value=DB[editIdx].langue||''}}
 function delCount(){return JSON.parse(localStorage.getItem('bt_del')||'[]').length}
+function reports(){return JSON.parse(localStorage.getItem('bt_reports')||'[]')}
+function addReport(reason){const t=g.cur;if(!t)return;const rep={ts:Date.now(),reason:reason||'',artist:t.artist,title:t.title,vid:t.vid,id:t.id};
+const l=reports();l.unshift(rep);localStorage.setItem('bt_reports',JSON.stringify(l))}
+function reportTrack(){const t=g.cur;if(!t)return;askPrompt('Titre : '+t.artist+' — '+t.title+'\nDécris le problème (lien mort, mauvais titre, etc.) :',v=>{addReport(v||'(sans description)');alert('Signalement enregistré.')},'text')}
+function clearReports(){askConfirm('Effacer tous les signalements enregistrés sur cet appareil ?',()=>{localStorage.removeItem('bt_reports');hostUI()})}
+function exportReports(){const b=new Blob([JSON.stringify(reports(),null,1)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='blindtest-signalements.json';a.click()}
 function resetDevice(){askConfirm("Effacer les titres supprimés localement sur cet appareil et recharger toute la base depuis titres.json ?",()=>{
 localStorage.removeItem('bt_del');localStorage.removeItem('bt_db');location.reload()})}
 function langOptions(){return [...new Set(DB.map(t=>t.langue).filter(Boolean))].sort()}
@@ -100,10 +119,13 @@ askPrompt('Code administrateur :',async v=>{const h=await sha256(v||'');if(h===e
 function changeCode(){askPrompt('Code administrateur actuel :',async old=>{const oh=await sha256(old||'');if(oh!==effHash()){alert('Code incorrect.');return}
 askPrompt('Nouveau code :',async v=>{if(v){const nh=await sha256(v);localStorage.setItem('bt_admin_hash',nh);alert('Code mis à jour sur cet appareil.')}})})}
 let BL;
-function rmIframe(){const o=$('sf');if(o)o.remove()}
+function rmIframe(){const o=$('sf');if(o)o.remove();const l=$('lo');if(l)l.remove()}
 function mk(t,pos,cb){rmIframe();if(BL)window.removeEventListener('blur',BL);const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow='autoplay';f.style.border=0;
 f.src='https://www.yout-ube.com/watch?v='+t.vid+(pos>1?'&t='+Math.floor(pos)+'s':'')+'&autoplay=1';
-BL=()=>setTimeout(()=>{if(document.activeElement===f)cb()},0);window.addEventListener('blur',BL);$('ytw').appendChild(f)}
+const lo=document.createElement('div');lo.id='lo';lo.textContent='⏳ Chargement…';
+f.onload=()=>{const l=$('lo');if(l)l.remove()};
+BL=()=>setTimeout(()=>{if(document.activeElement===f)cb()},0);window.addEventListener('blur',BL);
+$('ytw').appendChild(f);$('ytw').appendChild(lo)}
 function pickRnd(){let base=DB.filter(matches);if(!base.length)return null;
 let p=base.filter(x=>!g.played.includes(x.id)&&x!==g.next);if(!p.length){g.played=[];p=base.filter(x=>x!==g.next);if(!p.length)p=base}return p[Math.random()*p.length|0]}
 function arm(t){if(!['idle','ready','done'].includes(g.phase))return;clearTimeout(tm);
@@ -139,7 +161,9 @@ if(g.phase=='judge'){h+=`<div class="big" style="margin:10px 0">🎤 ${e(g.buzz[
 <div class="row" style="margin-top:8px"><input type="number" placeholder="Année annoncée" value="${yv}" oninput="yv=this.value"><button class="p" onclick="yearEnd()">Valider l'année et suivant</button></div>
 <div class="row" style="margin-top:8px"><button class="d" onclick="wrong()">❌ Mauvaise réponse</button><button onclick="rev()">✔️ Terminer sans année</button></div>`}
 if(g.phase=='wait')h+=`<p class="m">Musique en pause. Touche le carré noir pour la reprendre. Les joueurs peuvent encore buzzer.</p>`;
-if(g.phase=='done')h+=`<button style="margin-top:8px" onclick="rev()">👁 Révéler</button>`;$('pn').innerHTML=h;
+if(g.phase=='done')h+=`<button style="margin-top:8px" onclick="rev()">👁 Révéler</button>`;
+if(g.cur&&g.phase!='idle')h+=`<p style="margin-top:10px"><button class="g" onclick="reportTrack()">🚩 Signaler ce titre</button></p>`;
+$('pn').innerHTML=h;
 $('lb').innerHTML=Object.entries(g.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')||'<p class="m">—</p>'}
 /* ================= PLAYER ================= */
 let S=null,me='',pc;
@@ -153,7 +177,8 @@ if(S.phase=='play'||S.phase=='wait')m=`<button class="buzz" onclick="buzz.call(t
 else if(S.phase=='judge'){const c=S.buzz[S.active];m=(c==me?'<p class="big">🎤 À toi de répondre !</p>':`<p class="big">Écoute, ${e(c)} répond.</p>`)+(b?'':'<button class="buzz" style="padding:24px 0" onclick="buzz.call(this)">🔴 BUZZ</button>')}
 else if(S.reveal)m=`<div class="big">${e(S.reveal.a)} — ${e(S.reveal.t)}</div><div class="m">${S.reveal.y}</div>`;else m=`<p class="m">${e(S.msg)}</p>`;
 A.innerHTML=`<div class="card"><div class="m">${e(me)}</div>${m}</div><div class="card"><h3>Ordre des buzz</h3>${S.buzz.length?`<ul>${S.buzz.map((n,i)=>`<li class="${S.phase=='judge'&&i==S.active?'on':''}">${i+1}. ${e(n)}</li>`).join('')}</ul>`:'<p class="m">—</p>'}</div>
-<div class="card"><h3>Classement</h3>${Object.entries(S.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')}</div>`}
+<div class="card"><h3>Classement</h3>${Object.entries(S.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')}</div>
+${dbInfoBlock()}`;refreshDbInfo()}
 LOADED=fetch('titres.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():[]).then(L=>{const del=JSON.parse(localStorage.getItem('bt_del')||'[]');let n=0,maj=0;L.forEach(x=>{const v=x.vid||vid(x.url||'');if(!v||!x.artist||!x.title||!x.year)return;const id=x.id||v;if(del.includes(id))return;
 const rec={id,vid:v,artist:x.artist,title:x.title,year:+x.year,genre:x.genre||'',langue:x.langue||''};
 const existing=DB.find(d=>d.id==id);if(existing){Object.assign(existing,rec);maj++}else{DB.push(rec);n++}});if(n||maj){save();if(peer&&tab=='b')hostUI()}}).catch(()=>{});
