@@ -464,7 +464,7 @@
   "artist": "Johnny Hallyday",
   "title": "L'idole des jeunes",
   "year": 1962,
-  "genre": "Rock & Alternatif / Metal",
+  "genre": "Variété / Chanson",
   "langue": "Français"
  },
  {
@@ -635,7 +635,7 @@
   "artist": "Johnny Hallyday",
   "title": "Retiens la nuit",
   "year": 1963,
-  "genre": "Rock & Alternatif / Metal",
+  "genre": "Variété / Chanson",
   "langue": "Français"
  },
  {
@@ -887,7 +887,7 @@
   "artist": "Johnny Hallyday",
   "title": "Le Pénitencier",
   "year": 1964,
-  "genre": "Rock & Alternatif / Metal",
+  "genre": "Variété / Chanson",
   "langue": "Français"
  },
  {
@@ -1045,16 +1045,16 @@
  },
  {
   "id": "mul1pfb3",
-  "vid": "yRNOX2Ogo7Q",
+  "vid": "p-nwqicykAo",
   "artist": "Claude François",
-  "title": "Mylène",
-  "year": 1965,
+  "title": "J'y pense et puis j'oublie",
+  "year": 1964,
   "genre": "Variété / Chanson",
   "langue": "Français"
  },
  {
   "id": "mul1zhwj",
-  "vid": "PyFnDf8PvmU",
+  "vid": "Z8oTvIaWH7s",
   "artist": "France Gall",
   "title": "Poupée de cire, poupée de son",
   "year": 1965,
@@ -1454,7 +1454,7 @@
   "artist": "Johnny Hallyday",
   "title": "Hey Joe",
   "year": 1967,
-  "genre": "Rock & Alternatif / Metal",
+  "genre": "Variété / Chanson",
   "langue": "Français"
  },
  {
@@ -1823,7 +1823,7 @@
   "artist": "Johnny Hallyday",
   "title": "Que je t'aime",
   "year": 1969,
-  "genre": "Rock & Alternatif / Metal",
+  "genre": "Variété / Chanson",
   "langue": "Français"
  },
  {
@@ -2504,10 +2504,10 @@
  {
   "id": "mul12ygn",
   "vid": "rDTmLLq_tbA",
-  "artist": "Johnny Hallyday",
+  "artist": "Johnny Hallyday & Sylvie Vartan",
   "title": "J'ai un problème",
   "year": 1973,
-  "genre": "Pop",
+  "genre": "Variété / Chanson",
   "langue": "Français"
  },
  {
@@ -3187,7 +3187,7 @@
  },
  {
   "id": "mul111bd",
-  "vid": "bO9vSmHh6FU",
+  "vid": "_3scLqnUU3Y",
   "artist": "Frederic François",
   "title": "Mon cœur te dit je t'aime",
   "year": 1977,
@@ -3394,7 +3394,7 @@
  },
  {
   "id": "mul1pja1",
-  "vid": "tBJJcUuwJ9Y",
+  "vid": "wJFShLrQrzk",
   "artist": "Alain Souchon",
   "title": "Le Chanteur",
   "year": 1978,
@@ -3952,7 +3952,7 @@
  },
  {
   "id": "mul1ehou",
-  "vid": "3eV2DjTqkxA",
+  "vid": "DthWhhZRN58",
   "artist": "Michel Sardou",
   "title": "Être une femme",
   "year": 1981,
@@ -5252,7 +5252,7 @@
   "artist": "Johnny Hallyday",
   "title": "Quelque chose de Tennessee",
   "year": 1985,
-  "genre": "Rock & Alternatif / Metal",
+  "genre": "Variété / Chanson",
   "langue": "Français"
  },
  {
@@ -5284,7 +5284,7 @@
  },
  {
   "id": "mul1mjdx",
-  "vid": "_YqzuE-5RE8",
+  "vid": "Tuoh3o0CM3Y",
   "artist": "Renaud",
   "title": "Mistral Gagnant",
   "year": 1985,
@@ -5464,7 +5464,7 @@
  },
  {
   "id": "mul19bc2",
-  "vid": "01jK2yQg-0w",
+  "vid": "mfO2PcVSG-s",
   "artist": "Caroline Loeb",
   "title": "C'est la ouate",
   "year": 1986,
@@ -5482,7 +5482,7 @@
  },
  {
   "id": "mul1f099",
-  "vid": "TeaKAB-IxOE",
+  "vid": "T5viRb_MiSs",
   "artist": "Elsa",
   "title": "T'en va pas",
   "year": 1986,
@@ -5513,7 +5513,7 @@
   "artist": "Johnny Hallyday",
   "title": "Je te promets",
   "year": 1986,
-  "genre": "Rock & Alternatif / Metal",
+  "genre": "Variété / Chanson",
   "langue": "Français"
  },
  {
@@ -5522,7 +5522,7 @@
   "artist": "Johnny Hallyday",
   "title": "Laura",
   "year": 1986,
-  "genre": "Rock & Alternatif / Metal",
+  "genre": "Variété / Chanson",
   "langue": "Français"
  },
  {
@@ -5531,7 +5531,7 @@
   "artist": "Johnny Hallyday",
   "title": "L'Envie",
   "year": 1986,
-  "genre": "Rock & Alternatif / Metal",
+  "genre": "Variété / Chanson",
   "langue": "Français"
  },
  {
@@ -6589,7 +6589,7 @@
  },
  {
   "id": "mul1bsxl",
-  "vid": "vkiyW0vqat8",
+  "vid": "Np8BO-TfXzc",
   "artist": "Mylène Farmer",
   "title": "Désenchantée",
   "year": 1991,
@@ -8488,7 +8488,7 @@
  },
  {
   "id": "mul14y2l",
-  "vid": "a2_ss9y-VjE",
+  "vid": "nNjIBYx4mEs",
   "artist": "Garou & Céline Dion",
   "title": "Sous le vent",
   "year": 2001,
@@ -8798,7 +8798,7 @@
   "artist": "Johnny Hallyday",
   "title": "Marie",
   "year": 2002,
-  "genre": "Rock & Alternatif / Metal",
+  "genre": "Variété / Chanson",
   "langue": "Français"
  },
  {
@@ -9037,8 +9037,8 @@
  },
  {
   "id": "mul1j49i",
-  "vid": "SWGlXQb-R-o",
-  "artist": "Raphaël",
+  "vid": "AfpDivUY3oU",
+  "artist": "Raphaël & Jean-Louis Aubert",
   "title": "Sur la route",
   "year": 2003,
   "genre": "Variété / Chanson",
@@ -9379,7 +9379,7 @@
  },
  {
   "id": "mul1efqj",
-  "vid": "QrujgiGRXEc",
+  "vid": "rOgJ6bwpauc",
   "artist": "Mylène Farmer",
   "title": "Fuck Them All",
   "year": 2005,
@@ -9388,7 +9388,7 @@
  },
  {
   "id": "mul1c4kl",
-  "vid": "JkJL2Eyq02Q",
+  "vid": "FfAqQrSou2U",
   "artist": "Olivia Ruiz",
   "title": "J'traîne des pieds",
   "year": 2005,
@@ -9784,7 +9784,7 @@
  },
  {
   "id": "mul13uvu",
-  "vid": "MYP_4OlwCZY",
+  "vid": "ogAvc_8erBA",
   "artist": "Christophe Willem",
   "title": "Double Je",
   "year": 2007,
@@ -12763,7 +12763,7 @@
  },
  {
   "id": "mul1t3g8",
-  "vid": "UXU0_vRYYJI",
+  "vid": "6KYh6S552jM",
   "artist": "Louane",
   "title": "Secret",
   "year": 2022,
@@ -13141,7 +13141,7 @@
  },
  {
   "id": "mul1zubl",
-  "vid": "-XyLecY2JyE",
+  "vid": "VCzc5C6Gu5M",
   "artist": "Slimane",
   "title": "Mon amour",
   "year": 2023,
@@ -13420,10 +13420,10 @@
  },
  {
   "id": "mul1oop7",
-  "vid": "5bLg553zXQI",
+  "vid": "JTfrV80p2Uo",
   "artist": "Julien Doré",
-  "title": "Imposteur",
-  "year": 2024,
+  "title": "Le lac",
+  "year": 2016,
   "genre": "Pop",
   "langue": "Français"
  },
