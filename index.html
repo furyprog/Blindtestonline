@@ -23,7 +23,7 @@ li{list-style:none;padding:8px 10px;margin-bottom:6px;border-radius:10px;backgro
 #ov .box,#hlp .box,#pl .box,#rp .box{background:var(--c);border:1px solid #352d54;border-radius:16px;padding:20px;max-width:340px;text-align:center}
 #ov .box p{margin:0 0 16px}
 .logo{display:block;margin:0 auto 10px;width:100%;max-width:220px;height:auto;border-radius:24px}.logo.sm{max-width:90px}
-.cd{font-size:26px;font-weight:800;text-align:center;color:var(--a);margin:4px 0}.cd:empty{display:none}#hlp .box p{margin:0 0 10px}#ov .box p{white-space:pre-line}
+.cd{font-size:26px;font-weight:800;text-align:center;color:var(--a);margin:4px 0}.cd:empty{display:none}#hlp .box p{margin:0 0 10px}#toast{display:none;position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2a2347;color:#fff;padding:10px 16px;border-radius:12px;z-index:40;font-size:14px;box-shadow:0 4px 16px #0008}#ov .box p{white-space:pre-line}
 #vic{position:fixed;inset:0;z-index:30;background:rgba(18,16,26,.94);display:flex;align-items:center;justify-content:center;text-align:center}
 .vt{font-size:54px;font-weight:900;color:var(--a);animation:pop .8s ease-out both,pulse 1.2s ease-in-out .8s infinite}.vt small{font-size:22px;color:var(--t)}
 .conf span{position:fixed;top:-30px;font-size:28px;animation:fall 3s linear infinite}
@@ -61,7 +61,7 @@ const fmt=(l,k)=>(k=='mus'?'🎵 Écoute : ':k=='ans'?'⏱ Réponse : ':'📅 An
 const conf=()=>Array.from({length:24},(_,i)=>`<span style="left:${i*4.2}%;animation-delay:${(i%8)*.35}s">${['🎉','⭐','🎵','🏆'][i%4]}</span>`).join('');
 function startAns(){g.tk='ans';g.tEnd=Date.now()+SET.tRep*1000;g.exp=false;g.lt=0}
 function cdUpd(){const el=$('cd');if(el&&g)el.textContent=g.tEnd?fmt(Math.max(0,g.tEnd-Date.now()),g.tk)+(g.exp?' — ⏰ temps écoulé':''):''}
-function tick(){if(!g||!g.phase)return;if(g.tEnd&&!g.exp&&g.tk!='mus'&&Date.now()>=g.tEnd){g.exp=true;snd('gong');upd();return}if(g.tEnd&&!g.exp&&g.tk!='mus'){const l=Math.ceil((g.tEnd-Date.now())/1000);if(l<=5&&l>0&&l!==g.lt){g.lt=l;snd('tick')}}cdUpd()}
+function tick(){if(!g||!g.phase)return;if(g.phase=='play'&&g.tk=='mus'&&g.tEnd&&Date.now()>g.tEnd+500){endRound();return}if(g.tEnd&&!g.exp&&g.tk!='mus'&&Date.now()>=g.tEnd){g.exp=true;snd('gong');upd();return}if(g.tEnd&&!g.exp&&g.tk!='mus'){const l=Math.ceil((g.tEnd-Date.now())/1000);if(l<=5&&l>0&&l!==g.lt){g.lt=l;snd('tick')}}cdUpd()}
 let plt=0;function pcd(){const el=$('cd');if(!S||!el)return;const l=S.tl-(Date.now()-S.at);if(S.phase=='judge'&&S.tk!='mus'&&!S.exp&&S.tl&&S.buzz[S.active]==me){const q=Math.ceil(l/1000);if(q<=5&&q>0&&q!==plt){plt=q;snd('tick')}}el.textContent=S.exp?'⏰ Temps écoulé !':S.tl?fmt(Math.max(0,l),S.tk):''}
 setInterval(tick,250);setInterval(pcd,250);
 function checkWin(){const w=SET.win,b=Object.entries(g.scores).sort((x,y)=>y[1]-x[1])[0];if(!w||!b||b[1]<w)return false;g.winner=b[0];g.phase='over';g.tEnd=0;g.msg='🏆 '+b[0]+' remporte la partie avec '+pts(b[1])+' !';snd('win');upd();return true}
@@ -75,7 +75,7 @@ if(window.YT&&YT.Player)plNext();else{window.onYouTubeIframeAPIReady=()=>plNext(
 function plNext(){pli++;if(pli>=plq.length){plq.sort(()=>Math.random()-.5);pli=0}const t=plq[pli];$('pln').textContent=t.artist+' — '+t.title+' ('+t.year+')';$('plc').textContent=(pli+1)+' / '+plq.length;
 if(ytp){ytp.loadVideoById(t.vid);return}
 ytp=new YT.Player('plyt',{width:'100%',height:200,videoId:t.vid,playerVars:{autoplay:1,playsinline:1},events:{onReady:ev=>ev.target.playVideo(),onStateChange:ev=>{if(ev.data===0)plNext()},onError:()=>setTimeout(plNext,800)}})}
-function plReport(){const t=plq[pli];if(!t)return;askPrompt('Titre : '+t.artist+' — '+t.title+'\nDécris le problème (lien mort, mauvais titre, etc.) :',v=>{addReport(v||'(sans description)',t);alert('Signalement enregistré.')},'text')}
+function plReport(){const t=plq[pli];if(!t)return;askPrompt('Titre : '+t.artist+' — '+t.title+'\nDécris le problème (lien mort, mauvais titre, etc.) :',v=>{addReport(v||'(sans description)',t);toast('🚩 Signalement enregistré')},'text')}
 function plTog(){if(!ytp)return;ytp.getPlayerState()===1?ytp.pauseVideo():ytp.playVideo()}
 function plStop(){try{ytp&&ytp.destroy()}catch(_){}ytp=null;$('pl').hidden=true;$('pl').innerHTML=''}
 const GENRES=['Rock & Alternatif / Metal','Pop','Rap / Hip-Hop','Électronique / Dance','Soul / R&B / Funk','B.O. Films / Dessins animés','Variété / Chanson','Folk / Country','Reggae / Dancehall'];
@@ -140,7 +140,10 @@ function addReport(reason,tr){const t=tr||g.cur;if(!t)return;const l=reports();i
 function sendReports(){const l=reports();l.filter(r=>!r.sent).forEach(r=>{const b=new URLSearchParams({'entry.968058521':String(r.id),'entry.1391653944':r.artist,'entry.834263999':r.title,'entry.1485386264':'https://youtu.be/'+r.vid,'entry.1623812002':r.reason||''});fetch(FORM,{method:'POST',mode:'no-cors',body:b}).then(()=>{r.sent=1;localStorage.setItem('bt_reports',JSON.stringify(l))}).catch(()=>{})})}
 setTimeout(sendReports,3000);addEventListener('online',sendReports);
 function showReports(){const l=reports();$('rp').innerHTML='<div class="box" style="max-width:520px;max-height:85vh;overflow:auto;text-align:left"><h3>🚩 Signalements ('+l.length+')</h3>'+(l.length?l.map(r=>'<div class="ld"><span>'+e(r.artist)+' — '+e(r.title)+'<br><span class="m">'+new Date(r.ts).toLocaleString('fr-FR')+(r.reason?' · '+e(r.reason):'')+(r.sent?' · ✓ envoyé':' · en attente')+'</span></span></div>').join(''):'<p class="m">Aucun signalement.</p>')+'<div class="row" style="margin-top:10px"><button class="g" onclick="sendReports();alert(\'Envoi relancé.\')">🔄 Renvoyer</button><button class="g" onclick="exportReports()">⬇️ Exporter</button>'+(l.length?'<button class="d" onclick="clearReports()">🗑 Effacer</button>':'')+'<button class="p" onclick="$(\'rp\').hidden=true">Fermer</button></div></div>';$('rp').hidden=false}
-function reportTrack(){const t=g.cur;if(!t)return;askPrompt('Titre : '+t.artist+' — '+t.title+'\nDécris le problème (lien mort, mauvais titre, etc.) :',v=>{addReport(v||'(sans description)');alert('Signalement enregistré.')},'text')}
+function toast(m){let t=$('toast');if(!t){t=document.createElement('div');t.id='toast';document.body.appendChild(t)}t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',2500)}
+function reportTrack(){const t=g.cur;if(!t)return;const ok=v=>{addReport(v||'(sans description)');toast('🚩 Signalement enregistré')};
+if(['play','judge','wait'].includes(g.phase)){ok("(signalé pendant la manche)");return}
+askPrompt('Titre : '+t.artist+' — '+t.title+'\nDécris le problème (lien mort, mauvais titre, etc.) :',ok,'text')}
 function clearReports(){const l=reports(),u=l.filter(r=>!r.sent).length;if(!l.length)return;askConfirm('Effacer les '+l.length+' signalement(s) de cet appareil ?'+(u?' '+u+' ne sont pas encore envoyé(s) et seront perdu(s).':' Ceux déjà envoyés restent dans le tableau de l\'organisateur.'),()=>{localStorage.removeItem('bt_reports');hostUI();if(!$('rp').hidden)showReports()})}
 function exportReports(){const b=new Blob([JSON.stringify(reports(),null,1)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='buzzhit-signalements.json';a.click()}
 function resetDevice(){askConfirm("Effacer les titres supprimés localement sur cet appareil et recharger toute la base depuis titres.json ?",()=>{
