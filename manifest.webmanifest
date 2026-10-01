@@ -1,0 +1,32 @@
+{
+ "name": "BuzzHit",
+ "short_name": "BuzzHit",
+ "description": "Le jeu de blind test entre amis, avec buzzers sur téléphone.",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "portrait",
+ "lang": "fr",
+ "background_color": "#12101a",
+ "theme_color": "#12101a",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
