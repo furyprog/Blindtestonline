@@ -68,18 +68,20 @@ let plt=0;function pcd(){const el=$('cd');if(!S||!el)return;const l=S.tl-(Date.n
 setInterval(tick,250);setInterval(pcd,250);
 function checkWin(){const w=SET.win,b=Object.entries(g.scores).sort((x,y)=>y[1]-x[1])[0];if(!w||!b||b[1]<w)return false;g.winner=b[0];g.phase='over';g.tEnd=0;g.msg='🏆 '+b[0]+' remporte la partie avec '+pts(b[1])+' !';snd('win');upd();return true}
 /* playlist secrète */
-let plq=[],pli=-1,ytp=null;
+let plq=[],pli=-1,ytp=null,WL=null,wlOn=false;
+async function wl(on){wlOn=on;try{if(on&&'wakeLock' in navigator&&!WL){WL=await navigator.wakeLock.request('screen');WL.addEventListener('release',()=>{WL=null})}else if(!on&&WL){await WL.release();WL=null}}catch(_){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible'&&wlOn&&!WL)wl(true)});
 function plStart(){if(['play','judge','wait'].includes(g.phase)){alert("Termine la manche en cours avant de lancer la playlist.");return}
 const b=DB.filter(matches);if(!b.length){alert('Aucun titre ne correspond aux filtres.');return}
 plq=b.slice().sort(()=>Math.random()-.5);pli=-1;rmIframe();clearTimeout(tm);
-$('pl').innerHTML='<div class="box" style="max-width:420px;width:100%"><h3>🎶 Playlist aléatoire</h3><div id="plp"><div id="plyt"></div></div><div id="pln" class="big" style="margin:10px 0"></div><div class="m" id="plc"></div><div class="row" style="margin-top:10px"><button onclick="plTog()">⏯</button><button class="p" onclick="plNext()">⏭ Suivant</button><button class="g" onclick="plReport()">🚩 Signaler</button><button class="d" onclick="plStop()">✕ Quitter</button></div></div>';$('pl').hidden=false;
+$('pl').innerHTML='<div class="box" style="max-width:420px;width:100%"><h3>🎶 Playlist aléatoire</h3><div id="plp"><div id="plyt"></div></div><div id="pln" class="big" style="margin:10px 0"></div><div class="m" id="plc"></div><p class="m" id="plwl" style="margin-top:8px"></p><div class="row" style="margin-top:10px"><button onclick="plTog()">⏯</button><button class="p" onclick="plNext()">⏭ Suivant</button><button class="g" onclick="plReport()">🚩 Signaler</button><button class="d" onclick="plStop()">✕ Quitter</button></div></div>';$('pl').hidden=false;wl(true);$('plwl').textContent='wakeLock' in navigator?"🔆 L'écran reste allumé tant que la playlist est ouverte. Ne verrouille pas le téléphone avec le bouton.":"⚠️ Ce navigateur ne peut pas garder l'écran allumé : désactive la mise en veille automatique.";
 if(window.YT&&YT.Player)plNext();else{window.onYouTubeIframeAPIReady=()=>plNext();const sc=document.createElement('script');sc.src='https://www.youtube.com/iframe_api';document.head.appendChild(sc)}}
 function plNext(){pli++;if(pli>=plq.length){plq.sort(()=>Math.random()-.5);pli=0}const t=plq[pli];$('pln').textContent=t.artist+' — '+t.title+' ('+t.year+')';$('plc').textContent=(pli+1)+' / '+plq.length;
 if(ytp){ytp.loadVideoById(t.vid);return}
 ytp=new YT.Player('plyt',{width:'100%',height:200,videoId:t.vid,playerVars:{autoplay:1,playsinline:1},events:{onReady:ev=>ev.target.playVideo(),onStateChange:ev=>{if(ev.data===0)plNext()},onError:()=>setTimeout(plNext,800)}})}
 function plReport(){const t=plq[pli];if(!t)return;askPrompt('Titre : '+t.artist+' — '+t.title+'\nDécris le problème (lien mort, mauvais titre, etc.) :',v=>{addReport(v||'(sans description)',t);toast('🚩 Signalement enregistré')},'text')}
 function plTog(){if(!ytp)return;ytp.getPlayerState()===1?ytp.pauseVideo():ytp.playVideo()}
-function plStop(){try{ytp&&ytp.destroy()}catch(_){}ytp=null;$('pl').hidden=true;$('pl').innerHTML=''}
+function plStop(){wl(false);try{ytp&&ytp.destroy()}catch(_){}ytp=null;$('pl').hidden=true;$('pl').innerHTML=''}
 const GENRES=['Rock & Alternatif / Metal','Pop','Rap / Hip-Hop','Électronique / Dance','Soul / R&B / Funk','B.O. Films / Dessins animés','Variété / Chanson','Folk / Country','Reggae / Dancehall'];
 let filt=JSON.parse(localStorage.getItem('bt_filt')||'{"genres":[],"langues":[],"yMin":"","yMax":""}');
 const saveFilt=()=>localStorage.setItem('bt_filt',JSON.stringify(filt));filt.genres=filt.genres.filter(x=>GENRES.includes(x));
