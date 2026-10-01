@@ -23,7 +23,7 @@ li{list-style:none;padding:8px 10px;margin-bottom:6px;border-radius:10px;backgro
 #ov .box,#hlp .box,#pl .box,#rp .box{background:var(--c);border:1px solid #352d54;border-radius:16px;padding:20px;max-width:340px;text-align:center}
 #ov .box p{margin:0 0 16px}
 .logo{display:block;margin:0 auto 10px;width:100%;max-width:220px;height:auto;border-radius:24px}.logo.sm{max-width:90px}
-.cd{font-size:26px;font-weight:800;text-align:center;color:var(--a);margin:4px 0}.cd:empty{display:none}#hlp .box p{margin:0 0 10px}
+.cd{font-size:26px;font-weight:800;text-align:center;color:var(--a);margin:4px 0}.cd:empty{display:none}#hlp .box p{margin:0 0 10px}#ov .box p{white-space:pre-line}
 #vic{position:fixed;inset:0;z-index:30;background:rgba(18,16,26,.94);display:flex;align-items:center;justify-content:center;text-align:center}
 .vt{font-size:54px;font-weight:900;color:var(--a);animation:pop .8s ease-out both,pulse 1.2s ease-in-out .8s infinite}.vt small{font-size:22px;color:var(--t)}
 .conf span{position:fixed;top:-30px;font-size:28px;animation:fall 3s linear infinite}
@@ -41,7 +41,7 @@ li{list-style:none;padding:8px 10px;margin-bottom:6px;border-radius:10px;backgro
 <p class="m"><b>Filtres</b> : genres, langues et années limitent les titres tirés.</p>
 <p class="m"><b>Base</b> (code admin) : ajout, édition, import/export et signalements.</p><p class="m"><b>🎶 Playlist</b> : écoute les titres en entier, en ordre aléatoire, enchaînés automatiquement selon les filtres (genres, langues, années) ; le bouton 🚩 permet de signaler un titre erroné.</p>
 <p class="m"><b>Thèmes, équipes, bonus</b> : les boutons « Thèmes » règlent les filtres en un clic. Dans Paramètres, « Équipes » regroupe les points par équipe (les joueurs choisissent leur équipe en rejoignant, ou elle est attribuée automatiquement) et « Manche bonus » double les points de l'année toutes les N manches. 🏁 Terminer affiche le podium final à tous.</p><p class="m"><b>🚩 Signalements</b> : le bouton 🚩 du haut liste les titres signalés. Ils sont envoyés automatiquement à l'organisateur (statut « ✓ envoyé ») ; tu peux aussi les exporter.</p><p class="m" style="text-align:center">Réalisation : Th.ROUSSEL</p><button class="p" onclick="$('hlp').hidden=true">Fermer</button></div></div><div id="pl" hidden></div><div id="rp" hidden></div>
-<div id="ov" hidden><div class="box"><p id="ovmsg"></p><input id="ovinput" type="text" style="display:none"><div class="row"><button class="p" id="ovyes">OK</button><button class="g" onclick="$('ov').hidden=true">Annuler</button></div></div></div>
+<div id="ov" hidden><div class="box"><p id="ovmsg"></p><input id="ovinput" type="text" style="display:none"><div class="row"><button class="p" id="ovyes">OK</button><button class="g" id="ovno" onclick="$('ov').hidden=true">Annuler</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
@@ -158,8 +158,10 @@ function bulk(){let n=0,bad=0;$('bl').value.split('\n').forEach(l=>{if(!l.trim()
 function exp(){const b=new Blob([JSON.stringify(DB)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='blindtest-base.json';a.click()}
 function imp(i){const f=i.files[0];if(!f)return;f.text().then(x=>{try{DB=DB.concat(JSON.parse(x).filter(t=>t.vid&&!DB.some(d=>d.id==t.id)));save();hostUI()}catch(_){alert('Fichier invalide')}})}
 /* lecture : le carré noir est le bouton de lancement */
-function askConfirm(msg,yes){$('ovmsg').textContent=msg;$('ovinput').style.display='none';$('ov').hidden=false;$('ovyes').onclick=()=>{$('ov').hidden=true;yes()}}
-function askPrompt(msg,cb,type){$('ovmsg').textContent=msg;const i=$('ovinput');i.style.display='block';i.type=type||'password';i.value='';$('ov').hidden=false;setTimeout(()=>i.focus(),50);
+function askInfo(m){$('ovmsg').textContent=String(m);$('ovinput').style.display='none';$('ovno').style.display='none';$('ov').hidden=false;$('ovyes').onclick=()=>{$('ov').hidden=true}}
+window.alert=askInfo;
+function askConfirm(msg,yes){$('ovno').style.display='';$('ovmsg').textContent=msg;$('ovinput').style.display='none';$('ov').hidden=false;$('ovyes').onclick=()=>{$('ov').hidden=true;yes()}}
+function askPrompt(msg,cb,type){$('ovno').style.display='';$('ovmsg').textContent=msg;const i=$('ovinput');i.style.display='block';i.type=type||'password';i.value='';$('ov').hidden=false;setTimeout(()=>i.focus(),50);
 const submit=()=>{$('ov').hidden=true;i.style.display='none';cb(i.value)};$('ovyes').onclick=submit;i.onkeydown=ev=>{if(ev.key=='Enter')submit()}}
 const ADMIN_HASH='4b3a338b928e1c20503a3eda318c25ac9d38e73f6fbcfefba841563a6cba65c7';
 async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
