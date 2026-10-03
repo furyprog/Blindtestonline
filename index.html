@@ -100,7 +100,7 @@ function plStop(){wl(false);try{ytp&&ytp.destroy()}catch(_){}ytp=null;$('pl').hi
 const GENRES=['Rock & Alternatif / Metal','Pop','Rap / Hip-Hop','Électronique / Dance','Soul / R&B / Funk','B.O. Films / Dessins animés','Variété / Chanson','Folk / Country','Reggae / Dancehall'];
 let filt=JSON.parse(localStorage.getItem('bt_filt')||'{"genres":[],"langues":[],"yMin":"","yMax":""}');
 const saveFilt=()=>localStorage.setItem('bt_filt',JSON.stringify(filt));filt.genres=filt.genres.filter(x=>GENRES.includes(x));
-function matches(t){if(filt.genres.length&&!filt.genres.includes(t.genre))return false;if(filt.langues.length&&!filt.langues.includes(t.langue))return false;
+function matches(t){if(filt.genres.length&&!filt.genres.includes(t.genre))return false;if(filt.langues.length&&!filt.langues.includes(langNorm(t.langue)))return false;
 if(filt.yMin&&t.year<+filt.yMin)return false;if(filt.yMax&&t.year>+filt.yMax)return false;return true}
 function toggleFilt(kind,val){const l=filt[kind],i=l.indexOf(val);if(i>-1)l.splice(i,1);else l.push(val);saveFilt();hostUI()}
 function updateFiltCount(){const el=$('filtCount');if(el)el.textContent=DB.filter(matches).length+' titre(s) correspondent aux critères.'}
@@ -145,14 +145,14 @@ ${langOptions().length?`<p class="m" style="margin-top:10px">Langues</p><div cla
 <div class="card" id="pn"></div>`:`
 <div class="card"><h3>${editIdx>-1?'✎ Modifier ce titre':'Ajouter un titre'}</h3><input id="fu" placeholder="Lien YouTube"><div class="row"><input id="fa" placeholder="Artiste"><input id="ft" placeholder="Titre"></div>
 <div class="row"><input id="fy" type="number" placeholder="Année"><select id="fg" style="font:inherit;width:100%;background:#171329;color:#f3efe8;border:1px solid #352d54;border-radius:10px;padding:11px;margin:4px 0"><option value="">Genre…</option>${GENRES.map(x=>`<option>${e(x)}</option>`).join('')}</select></div>
-<input id="fl" list="langList" placeholder="Langue (ex: Français, Anglais…)"><datalist id="langList">${langOptions().map(x=>`<option value="${e(x)}">`).join('')}</datalist>
+<select id="fl"><option value="">Langue…</option>${LANGS.map(x=>`<option>${x}</option>`).join('')}</select>
 <div class="row" style="margin-top:6px"><button class="p" onclick="add()">${editIdx>-1?'💾 Mettre à jour':'+ Ajouter'}</button>${editIdx>-1?'<button class="g" onclick="cancelEdit()">Annuler</button>':''}</div><p class="m" id="fm"></p></div>
 <div class="card"><h3>Coller une liste</h3><p class="m">Une ligne par titre : lien ; artiste ; titre ; année ; genre ; langue (tous les champs sont obligatoires)</p><textarea id="bl" rows="5" style="width:100%;background:#171329;color:#f3efe8;border:1px solid #352d54;border-radius:10px;padding:10px"></textarea><button class="p" style="margin-top:6px" onclick="bulk()">Importer</button><p class="m" id="bm"></p></div>
 <div class="card"><div class="row"><button onclick="exp()">⬇️ Exporter</button><label><button onclick="$('imp').click()" style="width:100%">⬆️ Importer</button></label></div><input id="imp" type="file" accept=".json" hidden onchange="imp(this)">
 <p class="m" style="margin-top:8px">${delCount()} titre(s) supprimé(s) localement sur cet appareil. <button class="g" onclick="resetDevice()">↺ Réinitialiser cet appareil</button></p></div>
 <div class="card"><h3>🚩 Signalements (${reports().length})</h3>${reports().length?reports().map(r=>`<div class="ld"><span>${e(r.artist)} — ${e(r.title)}<br><span class="m">${new Date(r.ts).toLocaleString('fr-FR')}${r.reason?' · '+e(r.reason):''}${r.sent?' · ✓ envoyé':''}</span></span></div>`).join('')+'<div class="row" style="margin-top:8px"><button class="g" onclick="exportReports()">⬇️ Exporter</button><button class="g" onclick="clearReports()">Effacer</button></div>':'<p class="m">Aucun signalement.</p>'}</div>
-<div class="card">${DB.map((t,i)=>`<div class="ld"><span>${vdot(t)}${e(t.artist)} — ${e(t.title)} (${t.year})${t.genre||t.langue?` <span class="m">· ${e([t.genre,t.langue].filter(Boolean).join(' · '))}</span>`:''}</span><span><button class="g" onclick="pick(${i})">▶</button> <button class="g" onclick="editTrack(${i})">✎</button> <button class="g" onclick="del(${i})">✕</button></span></div>`).join('')||'<p class="m">Base vide.</p>'}</div>`);if(tab=='g'){upd();if(g.phase=='ready')arm(g.next);else if(g.phase=='wait')mk(g.cur,g.pos,resume)}
-if(tab=='b'&&editIdx>-1){$('fu').value='https://www.youtube.com/watch?v='+DB[editIdx].vid;$('fa').value=DB[editIdx].artist;$('ft').value=DB[editIdx].title;$('fy').value=DB[editIdx].year;$('fg').value=DB[editIdx].genre||'';$('fl').value=DB[editIdx].langue||''}}
+<div class="card"><div class="row" style="align-items:center;margin-bottom:8px"><label class="m" style="flex:none">Trier par</label><select onchange="setSort(this.value)">${[['ajout','Ordre de la base'],['artiste','Artiste (A → Z)'],['titre','Titre (A → Z)'],['annee','Année (croissante)'],['annee-d','Année (décroissante)'],['genre','Genre'],['langue','Langue'],['statut','Statut (ajoutés, à vérifier, vérifiés)']].map(x=>`<option value="${x[0]}" ${SORT==x[0]?'selected':''}>${x[1]}</option>`).join('')}</select></div>${sortedDB().map(([t,i])=>`<div class="ld"><span>${vdot(t)}${e(t.artist)} — ${e(t.title)} (${t.year})${t.genre||t.langue?` <span class="m">· ${e([t.genre,t.langue].filter(Boolean).join(' · '))}</span>`:''}</span><span><button class="g" onclick="pick(${i})">▶</button> <button class="g" onclick="editTrack(${i})">✎</button> <button class="g" onclick="del(${i})">✕</button></span></div>`).join('')||'<p class="m">Base vide.</p>'}</div>`);if(tab=='g'){upd();if(g.phase=='ready')arm(g.next);else if(g.phase=='wait')mk(g.cur,g.pos,resume)}
+if(tab=='b'&&editIdx>-1){$('fu').value='https://www.youtube.com/watch?v='+DB[editIdx].vid;$('fa').value=DB[editIdx].artist;$('ft').value=DB[editIdx].title;$('fy').value=DB[editIdx].year;$('fg').value=DB[editIdx].genre||'';$('fl').value=DB[editIdx].langue?langNorm(DB[editIdx].langue):''}}
 function delCount(){return JSON.parse(localStorage.getItem('bt_del')||'[]').length}
 function reports(){return JSON.parse(localStorage.getItem('bt_reports')||'[]')}
 const FORM='https://docs.google.com/forms/d/e/1FAIpQLSfTzdzy-ZOo9RsnZM9PHdxLgAJjoM4aOE9ZpF8fIicnmO_rfg/formResponse';
@@ -168,12 +168,18 @@ function clearReports(){const l=reports(),u=l.filter(r=>!r.sent).length;if(!l.le
 function exportReports(){const b=new Blob([JSON.stringify(reports(),null,1)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='buzzhit-signalements.json';a.click()}
 function resetDevice(){askConfirm("Effacer les titres supprimés localement sur cet appareil et recharger toute la base depuis titres.json ?",()=>{
 localStorage.removeItem('bt_del');localStorage.removeItem('bt_db');location.reload()})}
-function langOptions(){return [...new Set(DB.map(t=>t.langue).filter(Boolean))].sort()}
+const LANGS=['Français','Anglais','Autre'],langNorm=l=>l==='Français'||l==='Anglais'?l:'Autre';
+function langOptions(){return LANGS}
 function msg(s){g.msg=s;upd()}
-let editIdx=-1;
+let editIdx=-1,SORT=localStorage.getItem('bt_sort')||'ajout';
+const setSort=v=>{SORT=v;localStorage.setItem('bt_sort',v);hostUI()};
+function sortedDB(){const a=DB.map((t,i)=>[t,i]),c=(x,y)=>String(x||'').localeCompare(String(y||''),'fr',{sensitivity:'base'}),ar=(x,y)=>c(x[0].artist,y[0].artist)||c(x[0].title,y[0].title),st=t=>!t.base?0:t.verifie?2:1;
+const f={artiste:ar,titre:(x,y)=>c(x[0].title,y[0].title)||c(x[0].artist,y[0].artist),annee:(x,y)=>x[0].year-y[0].year||ar(x,y),'annee-d':(x,y)=>y[0].year-x[0].year||ar(x,y),genre:(x,y)=>c(x[0].genre,y[0].genre)||ar(x,y),langue:(x,y)=>c(x[0].langue,y[0].langue)||ar(x,y),statut:(x,y)=>st(x[0])-st(y[0])||ar(x,y)}[SORT];return f?a.sort(f):a}
 function editTrack(i){editIdx=i;hostUI()}
 function cancelEdit(){editIdx=-1;hostUI()}
-function add(){const v=vid($('fu').value),a=$('fa').value.trim(),t=$('ft').value.trim(),y=+$('fy').value,gg=$('fg').value,l=$('fl').value.trim();if(!v||!a||!t||!y||!gg||!l){$('fm').textContent='⚠️ Tous les champs sont requis : lien YouTube, artiste, titre, année, genre et langue.';return}
+function add(){const v=vid($('fu').value),a=$('fa').value.trim(),t=$('ft').value.trim(),y=+$('fy').value,gg=$('fg').value,l=$('fl').value.trim();const ck=[['fu',v,$('fu').value.trim()?'Lien YouTube non reconnu':'Lien YouTube manquant'],['fa',a,'Artiste manquant'],['ft',t,'Titre manquant'],['fy',y>=1900&&y<=2100,$('fy').value.trim()?'Année invalide (entre 1900 et 2100)':'Année manquante'],['fg',gg,'Genre non choisi'],['fl',l,'Langue non choisie']];
+ck.forEach(x=>$(x[0]).style.borderColor='');const pb=ck.filter(x=>!x[1]);
+if(pb.length){pb.forEach(x=>$(x[0]).style.borderColor='#ff4d6d');$('fm').textContent='⚠️ À corriger : '+pb.map(x=>x[2]).join(' · ');$(pb[0][0]).focus();return}
 if(editIdx>-1){const tr=DB[editIdx];tr.vid=v;tr.artist=a;tr.title=t;tr.year=y;tr.genre=gg;tr.langue=l;editIdx=-1;save();hostUI();return}
 if(DB.some(d=>d.id==v)){$('fm').textContent='Ce titre est déjà dans la base.';return}const nt={id:v,vid:v,artist:a,title:t,year:y,genre:gg,langue:l};DB.push(nt);save();propose(nt);hostUI();toast("📨 Titre ajouté et proposé à l'administrateur")}
 function del(i){if(i===editIdx)editIdx=-1;const t=DB.splice(i,1)[0],d=JSON.parse(localStorage.getItem('bt_del')||'[]');d.push(t.id);localStorage.setItem('bt_del',JSON.stringify(d));save();hostUI()}
