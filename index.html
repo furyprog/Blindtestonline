@@ -83,8 +83,8 @@ plq=b.slice().sort(()=>Math.random()-.5);pli=-1;rmIframe();clearTimeout(tm);
 $('pl').innerHTML='<div class="box" style="max-width:420px;width:100%"><h3>🎶 Playlist aléatoire</h3><div id="plp"><div id="plyt"></div></div><div id="pln" class="big" style="margin:10px 0"></div><div class="m" id="plc"></div><p class="m" id="plwl" style="margin-top:8px"></p><div class="row" style="margin-top:10px"><button onclick="plTog()">⏯</button><button class="p" onclick="plNext()">⏭ Suivant</button><button class="g" onclick="plReport()">🚩 Signaler</button><button class="d" onclick="plStop()">✕ Quitter</button></div></div>';$('pl').hidden=false;wl(true);$('plwl').textContent='wakeLock' in navigator?"🔆 L'écran reste allumé tant que la playlist est ouverte. Ne verrouille pas le téléphone avec le bouton.":"⚠️ Ce navigateur ne peut pas garder l'écran allumé : désactive la mise en veille automatique.";
 if(window.YT&&YT.Player)plNext();else{window.onYouTubeIframeAPIReady=()=>plNext();const sc=document.createElement('script');sc.src='https://www.youtube.com/iframe_api';document.head.appendChild(sc)}}
 function plNext(){pli++;if(pli>=plq.length){plq.sort(()=>Math.random()-.5);pli=0}const t=plq[pli];$('pln').innerHTML=vdot(t,1)+e(t.artist)+' — '+e(t.title)+' ('+t.year+')';$('plc').textContent=(pli+1)+' / '+plq.length;
-if(ytp){ytp.loadVideoById(t.vid);return}
-ytp=new YT.Player('plyt',{width:'100%',height:200,videoId:t.vid,playerVars:{autoplay:1,playsinline:1},events:{onReady:ev=>ev.target.playVideo(),onStateChange:ev=>{if(ev.data===0)plNext()},onError:()=>setTimeout(plNext,800)}})}
+if(ytp){ytp.loadVideoById(t.vid);try{ytp.setVolume(t.vol||100)}catch(_){}return}
+ytp=new YT.Player('plyt',{width:'100%',height:200,videoId:t.vid,playerVars:{autoplay:1,playsinline:1},events:{onReady:ev=>{try{ev.target.setVolume(t.vol||100)}catch(_){}ev.target.playVideo()},onStateChange:ev=>{if(ev.data===1){try{ev.target.setVolume((plq[pli]||{}).vol||100)}catch(_){}}if(ev.data===0)plNext()},onError:()=>setTimeout(plNext,800)}})}
 function plReport(){const t=plq[pli];if(!t)return;askPrompt('Titre : '+t.artist+' — '+t.title+'\nDécris le problème (lien mort, mauvais titre, etc.) :',v=>{addReport(v||'(sans description)',t);toast('🚩 Signalement enregistré')},'text')}
 const FB='https://docs.google.com/forms/d/e/1FAIpQLSc8hEuq8kvXvOQ4-JD5Ar3m5r6H9Ru4f2PlWB15hXC3YKUmhg/formResponse';
 function fbInfos(){return [new Date().toLocaleString('fr-FR'),navigator.userAgent.slice(0,120),screen.width+'x'+screen.height,'phase='+(typeof g!='undefined'&&g?g.phase:'-'),'équipes='+SET.teams,'joueurs='+Object.keys(conns).length,'titres='+DB.length,'PWA='+(matchMedia('(display-mode: standalone)').matches?'oui':'non')].join(' | ')}
@@ -219,7 +219,7 @@ function rmIframe(){const o=$('sf');if(o)o.remove();const l=$('lo');if(l)l.remov
 function mk(t,pos,cb){rmIframe();if(BL)window.removeEventListener('blur',BL);const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow='autoplay';f.style.border=0;
 f.src='https://www.yout-ube.com/watch?v='+t.vid+(pos>1?'&t='+Math.floor(pos)+'s':'')+'&autoplay=1';
 const lo=document.createElement('div');lo.id='lo';lo.textContent='⏳ Chargement…';
-f.onload=()=>{const l=$('lo');if(l)l.remove()};
+f.onload=()=>{const l=$('lo');if(l)l.remove();if(t.vol){try{f.contentWindow.postMessage(JSON.stringify({event:'command',func:'setVolume',args:[t.vol]}),'*')}catch(_){}}};
 BL=()=>setTimeout(()=>{if(document.activeElement===f)cb()},0);window.addEventListener('blur',BL);
 $('ytw').appendChild(f);$('ytw').appendChild(lo)}
 function pickRnd(){let base=DB.filter(matches);if(!base.length)return null;
@@ -272,7 +272,7 @@ function trainStart(){clearInterval(TR.iv);TR={on:true,played:[],iv:setInterval(
 function trainReset(){Object.assign(TR,{score:0,n:0,fa:0,ft:0,fy:0,bz:0,ms:0,phase:'idle',cur:null,a:false,t:false})}
 function trainSeries(v){TR.len=+v;localStorage.setItem('bt_trlen',v);trainReset();trainNext()}
 function trainRestart(){trainReset();trainNext()}
-function trainUI(){A.innerHTML=`<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="row" style="margin-bottom:12px;align-items:center"><button onclick="trainQuit()">← Accueil</button><button onclick="trainNext()">⏭ Passer</button><select onchange="trainSeries(this.value)" style="width:auto;flex:none;margin:0">${[[5,'Série de 5'],[10,'Série de 10'],[15,'Série de 15'],[20,'Série de 20'],[0,'Sans limite']].map(x=>`<option value="${x[0]}" ${TR.len==x[0]?'selected':''}>${x[1]}</option>`).join('')}</select></div><div class="card" id="tb"></div><div class="card"><div id="ytw" style="margin-top:8px"><div>🎵</div><span id="yt"></span></div></div><div id="tf">${filtHTML()}</div>`;trainRender()}
+function trainUI(){A.innerHTML=`<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="row" style="margin-bottom:12px;align-items:center"><button onclick="trainQuit()">← Accueil</button><select onchange="trainSeries(this.value)" style="width:auto;flex:none;margin:0">${[[5,'Série de 5'],[10,'Série de 10'],[15,'Série de 15'],[20,'Série de 20'],[0,'Sans limite']].map(x=>`<option value="${x[0]}" ${TR.len==x[0]?'selected':''}>${x[1]}</option>`).join('')}</select></div><div class="card" id="tb"></div><div class="card"><div id="ytw" style="margin-top:8px"><div>🎵</div><span id="yt"></span></div></div><div id="tf">${filtHTML()}</div>`;trainRender()}
 function trainQuit(){clearInterval(TR.iv);rmIframe();if(BL)window.removeEventListener('blur',BL);TR={on:false};keepAwake=false;wl(false);home()}
 function trainNext(){if(!TR.on||TR.phase=='final')return;rmIframe();if(BL)window.removeEventListener('blur',BL);
 if(TR.len&&TR.n>=TR.len){trainFinal();return}
@@ -302,6 +302,7 @@ else if(p=='miss')h+=`<div class="big" style="text-align:center">⏰ Temps écou
 else if(p=='result'){const dy=TR.y?Math.abs(TR.y-t.year):null;h+=`<div class="big" style="text-align:center">${e(t.artist)} — ${e(t.title)} (${t.year})</div><div class="card" style="margin:10px 0"><div class="ld"><span>Artiste</span><b>${TR.a?'+1':'0'}</b></div><div class="ld"><span>Titre</span><b>${TR.t?'+1':'0'}</b></div><div class="ld"><span>Année${TR.y?' ('+TR.y+(dy?', écart '+dy+' an'+(dy>1?'s':''):', exacte')+')':' (non saisie)'}</span><b>+${TR.yp}</b></div><div class="ld"><span><b>Total</b></span><b>+${TR.pts}</b></div></div>${rp}${nx}`}
 else if(p=='final'){const n=TR.n||1,rec=!TR.len?'':TR.newRec?(TR.prev?`🏆 Nouveau record ! (ancien : ${pts(TR.prev.pts)})`:'🏆 Record enregistré sur cet appareil !'):`Record à battre : ${pts(TR.prev.pts)} (${e(TR.prev.date||'')})`;
 h+=`<div class="big" style="text-align:center">🏁 Série terminée</div><div class="big" style="text-align:center;color:var(--a)">${pts(TR.score)} sur ${TR.len*4}</div>${rec?`<p class="big" style="text-align:center">${rec}</p>`:''}<div class="card" style="margin:10px 0"><div class="ld"><span>Artistes trouvés</span><b>${TR.fa}/${TR.n}</b></div><div class="ld"><span>Titres trouvés</span><b>${TR.ft}/${TR.n}</b></div><div class="ld"><span>Années exactes</span><b>${TR.fy}/${TR.n}</b></div><div class="ld"><span>Buzz dans le temps</span><b>${TR.bz}/${TR.n}</b></div></div><button class="p" style="width:100%" onclick="trainRestart()">🔁 Nouvelle série</button><button style="width:100%;margin-top:8px" onclick="trainQuit()">← Accueil</button>`}
+if(['ready','play','think','reveal'].includes(p))h+=`<button class="g" style="width:100%;margin-top:10px" onclick="trainNext()">⏭ Passer le morceau</button>`;
 b.innerHTML=h;trainTick()}
 let scStream=null,scTimer=null;
 async function scanQR(){
@@ -334,7 +335,7 @@ A.innerHTML=`${W}<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class
 <div class="card"><h3>🏆 Classement</h3>${podium(Object.entries(S.scores).sort((a,b)=>b[1]-a[1]))}${S.teams?teamRows(S.scores,S.ps,S.tm):Object.entries(S.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')}</div>
 ${dbInfoBlock()}`;refreshDbInfo()}
 LOADED=fetch('titres.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():[]).then(L=>{const del=JSON.parse(localStorage.getItem('bt_del')||'[]');let n=0,maj=0;L.forEach(x=>{const v=x.vid||vid(x.url||'');if(!v||!x.artist||!x.title||!x.year)return;const id=x.id||v;if(del.includes(id))return;
-const rec={id,vid:v,artist:x.artist,title:x.title,year:+x.year,genre:x.genre||'',langue:x.langue||'',verifie:x.verifie||'',base:1};
+const rec={id,vid:v,artist:x.artist,title:x.title,year:+x.year,genre:x.genre||'',langue:x.langue||'',verifie:x.verifie||'',vol:+x.vol||0,base:1};
 const existing=DB.find(d=>d.id==id||d.vid==v);if(existing){Object.assign(existing,rec);maj++}else{DB.push(rec);n++}});if(n||maj){save();if(peer&&tab=='b')hostUI()}}).catch(()=>{});
 home();
 
