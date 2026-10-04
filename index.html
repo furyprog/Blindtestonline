@@ -97,7 +97,7 @@ function sendProps(){const l=JSON.parse(localStorage.getItem('bt_props')||'[]');
 setTimeout(sendProps,5000);addEventListener('online',sendProps);
 function plTog(){if(!ytp)return;ytp.getPlayerState()===1?ytp.pauseVideo():ytp.playVideo()}
 function plStop(){wl(false);try{ytp&&ytp.destroy()}catch(_){}ytp=null;$('pl').hidden=true;$('pl').innerHTML=''}
-const GENRES=['Rock & Alternatif / Metal','Pop','Rap / Hip-Hop','Électronique / Dance','Soul / R&B / Funk','B.O. Films / Dessins animés','Variété / Chanson','Folk / Country','Reggae / Dancehall'];
+const GENRES=['Rock & Alternatif / Metal','Pop','Rap / Hip-Hop','Électronique / Danse','Soul / R&B / Funk','B.O. Films / Séries','Comédies musicales','Dessins animés','Variété / Chanson','Folk / Country','Reggae / Dancehall'];
 let filt=JSON.parse(localStorage.getItem('bt_filt')||'{"genres":[],"langues":[],"yMin":"","yMax":""}');
 const saveFilt=()=>localStorage.setItem('bt_filt',JSON.stringify(filt));filt.genres=filt.genres.filter(x=>GENRES.includes(x));
 function matches(t){if(filt.genres.length&&!filt.genres.includes(t.genre))return false;if(filt.langues.length&&!filt.langues.includes(langNorm(t.langue)))return false;
