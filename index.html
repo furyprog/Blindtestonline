@@ -31,7 +31,7 @@ li{list-style:none;padding:8px 10px;margin-bottom:6px;border-radius:10px;backgro
 .cr{text-align:center;color:var(--m);font-size:12px;opacity:.8;margin:14px 0 22px}select,textarea{font:inherit;width:100%;background:#171329;color:var(--t);border:1px solid #352d54;border-radius:10px;padding:11px;margin:4px 0}
 details>summary{cursor:pointer;font-weight:700;font-size:17px;list-style:none}details>summary::-webkit-details-marker{display:none}details>summary::before{content:'▸ '}details[open]>summary::before{content:'▾ '}details[open]>summary{margin-bottom:10px}
 </style></head><body>
-<div class="w" id="app"></div><div class="cr">Réalisation : Th.ROUSSEL</div>
+<div class="w" id="app"></div><div class="cr">Réalisation : Th.ROUSSEL<br><button onclick="refreshApp()" style="background:none;border:0;color:inherit;font:inherit;text-decoration:underline;padding:6px;cursor:pointer;width:auto">🔄 Actualiser l'application</button></div>
 <div id="hlp" hidden><div class="box" style="max-width:520px;max-height:85vh;overflow:auto;text-align:left"><h3>❓ Aide du modérateur</h3>
 <p class="m"><b>Démarrer</b> : clique sur « Nouvelle partie ». Les joueurs ouvrent le lien (ou scannent le QR code) et choisissent un pseudo.</p>
 <p class="m"><b>Lancer la musique</b> : le titre suivant est prêt après chaque manche ; touche le carré noir pour le lancer. Si rien ne se passe : 🔁 Réessayer ou ⏭ Changer de titre.</p>
@@ -49,6 +49,9 @@ details>summary{cursor:pointer;font-weight:700;font-size:17px;list-style:none}de
 const $=id=>document.getElementById(id),A=$('app');
 const e=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let DB=JSON.parse(localStorage.getItem('bt_db')||'[]');const save=()=>localStorage.setItem('bt_db',JSON.stringify(DB));
+if(location.search.includes('r='))history.replaceState(null,'',location.pathname+location.hash);
+async function refreshApp(){const go=async()=>{try{if('caches' in window){const k=await caches.keys();await Promise.all(k.map(c=>caches.delete(c)))}if('serviceWorker' in navigator){const r=await navigator.serviceWorker.getRegistrations();await Promise.all(r.map(x=>x.unregister()))}}catch(_){}location.replace(location.pathname+'?r='+Date.now()+location.hash)};
+if(peer)askConfirm("Actualiser l'application ? La partie en cours pourra être reprise (bouton « Reprendre la partie » pour le modérateur, « Me reconnecter » pour un joueur).",go);else go()}
 const SET=Object.assign({maxD:20,tRep:15,tAnn:10,win:0,yd:3,teams:0,bonus:0,rr:0,speed:0,ymode:0},JSON.parse(localStorage.getItem('bt_set')||'{}'));
 const setP=(k,a,b,el)=>{SET[k]=Math.min(b,Math.max(a,el.value===''||isNaN(+el.value)?SET[k]:+el.value));el.value=SET[k];localStorage.setItem('bt_set',JSON.stringify(SET))};
 let AC;function snd(k){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state=='suspended')AC.resume();let t=AC.currentTime;({buzz:[[880,.15]],gong:[[196,.7],[147,.9]],ok:[[660,.1],[880,.2]],tick:[[1300,.06]],win:[[523,.15],[659,.15],[784,.15],[1047,.5]]})[k].forEach(([f,d])=>{const o=AC.createOscillator(),n=AC.createGain();o.type=k=='gong'?'triangle':'sine';o.frequency.value=f;o.connect(n);n.connect(AC.destination);n.gain.setValueAtTime(.3,t);n.gain.exponentialRampToValueAtTime(.001,t+d);o.start(t);o.stop(t+d);t+=d})}catch(_){}}
@@ -181,6 +184,7 @@ function msg(s){g.msg=s;upd()}
 let OPEN=Object.assign({code:true,filtres:false,params:false},JSON.parse(localStorage.getItem('bt_open')||'{}')),editIdx=-1,SORT=localStorage.getItem('bt_sort')||'ajout';
 const setSort=v=>{SORT=v;localStorage.setItem('bt_sort',v);hostUI()};
 function codeToggle(o){OPEN.code=o;localStorage.setItem('bt_open',JSON.stringify(OPEN));const d=document.querySelector('details[ontoggle*="code"]');if(d)d.open=o}
+function collapseAll(){Object.keys(OPEN).forEach(k=>OPEN[k]=false);localStorage.setItem('bt_open',JSON.stringify(OPEN));document.querySelectorAll('#app details').forEach(d=>d.open=false)}
 const tgl=(k,el)=>{OPEN[k]=el.open;localStorage.setItem('bt_open',JSON.stringify(OPEN))};
 function sortedDB(){const a=DB.map((t,i)=>[t,i]),c=(x,y)=>String(x||'').localeCompare(String(y||''),'fr',{sensitivity:'base'}),ar=(x,y)=>c(x[0].artist,y[0].artist)||c(x[0].title,y[0].title),st=t=>!t.base?0:t.verifie?2:1;
 const f={artiste:ar,titre:(x,y)=>c(x[0].title,y[0].title)||c(x[0].artist,y[0].artist),annee:(x,y)=>x[0].year-y[0].year||ar(x,y),'annee-d':(x,y)=>y[0].year-x[0].year||ar(x,y),genre:(x,y)=>c(x[0].genre,y[0].genre)||ar(x,y),langue:(x,y)=>c(x[0].langue,y[0].langue)||ar(x,y),statut:(x,y)=>st(x[0])-st(y[0])||ar(x,y)}[SORT];return f?a.sort(f):a}
@@ -231,7 +235,7 @@ if(g.buzz.length>=Object.keys(conns).length||g.rem<=500){rev();return}
 g.phase='wait';g.tEnd=0;g.msg='👆 Touche le carré noir pour reprendre la musique';upd();mk(g.cur,g.pos,resume)}
 function awardYear(p){const b=g.buzz[g.active];if(b&&g.cur&&p>0){const pp=p*(g.bo?2:1);g.scores[K(b)]=(g.scores[K(b)]||0)+pp;g.rd[K(b)]=(g.rd[K(b)]||0)+pp;g.ps=g.ps||{};g.ps[b]=(g.ps[b]||0)+pp;g.rp=g.rp||{};g.rp[b]=(g.rp[b]||0)+pp;snd('ok')}yv='';rev()}
 function yearEnd(){const b=g.buzz[g.active];if(b&&yv&&g.cur){const d=Math.abs(+yv-g.cur.year);const pp=(d==0?2:d<=SET.yd?1:0)*(g.bo?2:1);g.scores[K(b)]=(g.scores[K(b)]||0)+pp;g.rd[K(b)]=(g.rd[K(b)]||0)+pp;g.ps=g.ps||{};g.ps[b]=(g.ps[b]||0)+pp;g.rp=g.rp||{};g.rp[b]=(g.rp[b]||0)+pp}yv='';rev()}
-function nouvelle(){const go=()=>{clearTimeout(tm);const o=$('sf');if(o)o.remove();Object.keys(g.scores).forEach(k=>g.scores[k]=0);g.played=[];g.next=null;g.cur=null;g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.winner=null;g.ps={};g.rp={};g.n=0;codeToggle(false);g.bo=false;g.tEnd=0;g.exp=false;g.phase='idle';arm()};
+function nouvelle(){const go=()=>{clearTimeout(tm);const o=$('sf');if(o)o.remove();Object.keys(g.scores).forEach(k=>g.scores[k]=0);g.played=[];g.next=null;g.cur=null;g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.winner=null;g.ps={};g.rp={};g.n=0;collapseAll();g.bo=false;g.tEnd=0;g.exp=false;g.phase='idle';arm()};
 if(Object.values(g.scores).some(v=>v>0))askConfirm('Remettre les scores à zéro et démarrer une nouvelle partie ?',go);else go()}
 function stopBtn(){clearTimeout(tm);const o=$('sf');if(o)o.remove();if(g.phase=='idle')return;if(g.phase=='ready'){arm();return}rev()}
 function refuse(){if(g.active+1<g.buzz.length)nxt();else rev()}
