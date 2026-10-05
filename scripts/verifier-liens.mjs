@@ -74,6 +74,10 @@ async function main() {
   } else res = await verifierOembed(titres);
   if (res.indetermines.length > titres.length * 0.3) res.mode += ' · CONTRÔLE INCOMPLET (trop de réponses indéterminées)';
   writeFileSync('rapport-liens.md', rapport(titres, res), 'utf8');
+  // Version courte (texte brut) pour la notification par e-mail
+  const court = res.problemes.slice(0, 15).map(x => `- ${x.artist} - ${x.title} : ${x.probleme} : https://youtu.be/${x.vid}`);
+  if (res.problemes.length > 15) court.push(`... et ${res.problemes.length - 15} autre(s) (voir le ticket sur GitHub)`);
+  writeFileSync('rapport-court.txt', `${res.problemes.length} lien(s) YouTube à vérifier (contrôle du ${new Date().toLocaleDateString('fr-FR')}) :\n` + court.join('\n'), 'utf8');
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `casses=${res.problemes.length}\n`);
   console.log(`${titres.length} liens contrôlés (${res.mode}) : ${res.problemes.length} à vérifier, ${res.indetermines.length} indéterminés.`);
 }
