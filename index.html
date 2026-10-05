@@ -124,7 +124,8 @@ let commitInfo='';
 function baseDate(){const f=d=>d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 return fetch('https://api.github.com/repos/furyprog/Blindtestonline/commits?path=titres.json&per_page=1').then(r=>r.ok?r.json():Promise.reject()).then(a=>f(new Date(a[0].commit.committer.date))).catch(()=>fetch('titres.json',{method:'HEAD',cache:'no-store'}).then(r=>{const h=r.headers.get('Last-Modified');return h?f(new Date(h)):''}).catch(()=>''))}
 baseDate().then(d=>{if(d){commitInfo=d;refreshDbInfo()}});
-function dbInfoText(){return DB.length+' titres'+(commitInfo?' · base mise à jour le '+commitInfo:' · date de mise à jour indisponible')}
+let LOADERR='';
+function dbInfoText(){return (LOADERR?'⚠️ titres.json illisible ('+e(LOADERR)+') · ':'')+DB.length+' titres'+(commitInfo?' · base mise à jour le '+commitInfo:' · date de mise à jour indisponible')}
 function dbInfoHtml(){return dbInfoText()+' <button class="g" style="padding:4px 8px;font-size:12px" onclick="checkUpdate()">🔄 Vérifier</button>'}
 function refreshDbInfo(){const el=$('dbInfo');if(el)el.innerHTML=dbInfoHtml()}
 function dbInfoBlock(){return '<p class="m" id="dbInfo">'+dbInfoHtml()+'</p>'}
@@ -338,9 +339,9 @@ else if(S.reveal)m=`<div class="big">${e(S.reveal.a)} — ${e(S.reveal.t)}</div>
 A.innerHTML=`${W}<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="card"><div class="m">${e(me)}</div><div id="cd" class="cd"></div>${S.bo&&['play','judge','wait'].includes(S.phase)?'<div class="cd">⭐ BONUS : année ×2</div>':''}${m}</div><div class="card"><h3>Ordre des buzz</h3>${S.buzz.length?`<ul>${S.buzz.map((n,i)=>`<li class="${S.phase=='judge'&&i==S.active?'on':''}">${i+1}. ${e(n)}</li>`).join('')}</ul>`:'<p class="m">—</p>'}</div>
 <div class="card"><h3>🏆 Classement</h3>${podium(Object.entries(S.scores).sort((a,b)=>b[1]-a[1]))}${S.teams?teamRows(S.scores,S.ps,S.tm):Object.entries(S.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')}</div>
 ${dbInfoBlock()}`;refreshDbInfo()}
-LOADED=fetch('titres.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():[]).then(L=>{const del=JSON.parse(localStorage.getItem('bt_del')||'[]');let n=0,maj=0;L.forEach(x=>{const v=x.vid||vid(x.url||'');if(!v||!x.artist||!x.title||!x.year)return;const id=x.id||v;if(del.includes(id))return;
+LOADED=fetch('titres.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():Promise.reject(new Error('HTTP '+x.status))).then(L=>{const del=JSON.parse(localStorage.getItem('bt_del')||'[]');let n=0,maj=0;L.forEach(x=>{const v=x.vid||vid(x.url||'');if(!v||!x.artist||!x.title||!x.year)return;const id=x.id||v;if(del.includes(id))return;
 const rec={id,vid:v,artist:x.artist,title:x.title,year:+x.year,genre:x.genre||'',langue:x.langue||'',verifie:x.verifie||'',vol:+x.vol||0,base:1};
-const existing=DB.find(d=>d.id==id||d.vid==v);if(existing){Object.assign(existing,rec);maj++}else{DB.push(rec);n++}});if(n||maj){save();if(peer&&tab=='b')hostUI()}}).catch(()=>{});
+const existing=DB.find(d=>d.id==id||d.vid==v);if(existing){Object.assign(existing,rec);maj++}else{DB.push(rec);n++}});if(n||maj){save();if(peer&&tab=='b')hostUI()}LOADERR='';refreshDbInfo()}).catch(er=>{LOADERR=String(er&&er.message||er);refreshDbInfo();setTimeout(()=>toast('⚠️ titres.json illisible : la base n\'a pas pu être mise à jour'),1500)});
 home();
 
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
