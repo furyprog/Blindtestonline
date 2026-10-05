@@ -19,10 +19,16 @@ jobs:
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: node scripts/verifier-liens.mjs titres.json
+      - name: Résumé du contrôle
+        if: always()
+        run: |
+          if [ -f rapport-liens.md ]; then cat rapport-liens.md >> "$GITHUB_STEP_SUMMARY"; fi
       - name: Ticket de suivi
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           CASSES: ${{ steps.controle.outputs.casses }}
+          OWNER: ${{ github.repository_owner }}
         run: |
           gh label create liens-casses --color D93F0B --description "Liens YouTube à vérifier" --force
           NUM=$(gh issue list --label liens-casses --state open --json number --jq '.[0].number // empty')
@@ -31,8 +37,27 @@ jobs:
               gh issue edit "$NUM" --body-file rapport-liens.md
               gh issue comment "$NUM" --body "Nouveau contrôle : $CASSES lien(s) encore à vérifier."
             else
-              gh issue create --title "Liens YouTube à vérifier" --label liens-casses --body-file rapport-liens.md
+              gh issue create --title "Liens YouTube à vérifier" --label liens-casses --assignee "$OWNER" --body-file rapport-liens.md \
+                || gh issue create --title "Liens YouTube à vérifier" --label liens-casses --body-file rapport-liens.md
             fi
           elif [ -n "$NUM" ]; then
             gh issue close "$NUM" --comment "Tous les liens sont valides."
           fi
+      - name: Notification par e-mail (formulaire Google des messages)
+        if: steps.controle.outputs.casses != '0'
+        continue-on-error: true
+        run: |
+          MSG="$(head -c 1500 rapport-court.txt)"
+          curl -sS -o /dev/null -w "Formulaire Google : HTTP %{http_code}\n" -X POST \
+            "https://docs.google.com/forms/d/e/1FAIpQLSc8hEuq8kvXvOQ4-JD5Ar3m5r6H9Ru4f2PlWB15hXC3YKUmhg/formResponse" \
+            --data-urlencode "entry.2082714092=Problème : liens YouTube" \
+            --data-urlencode "entry.1866834044=$MSG" \
+            --data-urlencode "entry.459208605=GitHub Actions (contrôle des liens)" \
+            --data-urlencode "entry.411072217=Contrôle automatique du $(date -u +%d/%m/%Y)"
+      - name: Alerte si des liens sont à vérifier
+        if: steps.controle.outputs.casses != '0'
+        env:
+          CASSES: ${{ steps.controle.outputs.casses }}
+        run: |
+          echo "::error::$CASSES lien(s) YouTube à vérifier : voir le résumé de cette exécution (en bas de la page) et l'onglet Issues."
+          exit 1
