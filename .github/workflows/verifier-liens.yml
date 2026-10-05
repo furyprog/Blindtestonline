@@ -1,1 +1,38 @@
-
+name: Vérifier les liens YouTube
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # chaque lundi à 6 h (heure UTC)
+  workflow_dispatch:       # lancement manuel possible (onglet Actions)
+permissions:
+  contents: read
+  issues: write
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Contrôle des liens
+        id: controle
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: node scripts/verifier-liens.mjs titres.json
+      - name: Ticket de suivi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CASSES: ${{ steps.controle.outputs.casses }}
+        run: |
+          gh label create liens-casses --color D93F0B --description "Liens YouTube à vérifier" --force
+          NUM=$(gh issue list --label liens-casses --state open --json number --jq '.[0].number // empty')
+          if [ "$CASSES" != "0" ]; then
+            if [ -n "$NUM" ]; then
+              gh issue edit "$NUM" --body-file rapport-liens.md
+              gh issue comment "$NUM" --body "Nouveau contrôle : $CASSES lien(s) encore à vérifier."
+            else
+              gh issue create --title "Liens YouTube à vérifier" --label liens-casses --body-file rapport-liens.md
+            fi
+          elif [ -n "$NUM" ]; then
+            gh issue close "$NUM" --comment "Tous les liens sont valides."
+          fi
