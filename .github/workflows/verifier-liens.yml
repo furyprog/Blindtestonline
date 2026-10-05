@@ -1,8 +1,8 @@
 name: Vérifier les liens YouTube
 on:
   schedule:
-    - cron: '0 6 * * 1'   # chaque lundi à 6 h (heure UTC)
-  workflow_dispatch:       # lancement manuel possible (onglet Actions)
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
 permissions:
   contents: read
   issues: write
