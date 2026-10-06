@@ -69,9 +69,12 @@ details>summary{cursor:pointer;font-weight:700;font-size:17px;list-style:none}de
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.0.7';
+const VERSION='1.0.8';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
+// Mode diagnostic (adresse ...?diag=1) : retire le masque noir pour voir ce que le lecteur affiche réellement
+const DIAG=/[?&]diag=1/.test(location.search);
+if(DIAG){const st=document.createElement('style');st.textContent='#ytw>div:not(#lo){display:none!important}#lo{background:rgba(0,0,0,.45)!important}';document.head.appendChild(st)}
 // Edge, Safari et iPhone/iPad bloquent la lecture automatique du lecteur tiers : on peut y précharger le lecteur (un seul toucher suffit)
 // Les autres navigateurs (Chrome, Firefox) et l'appli installée l'autorisent : le lecteur n'y est chargé qu'au toucher du carré noir
 const APPLI_INSTALLEE=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
@@ -260,7 +263,7 @@ const lo=document.createElement('div');lo.id='lo';lo.textContent='⏳ Chargement
 let fait=false;const go1=()=>{if(!fait){fait=true;cb()}};
 f.onload=()=>{const l=$('lo');if(l)l.remove();if(diff)setTimeout(go1,300)};
 BL=()=>setTimeout(()=>{if(document.activeElement===f)go1()},0);window.addEventListener('blur',BL);
-w.appendChild(f);w.appendChild(lo)};
+w.appendChild(f);w.appendChild(lo);if(DIAG){const d=document.createElement('div');d.style.cssText='position:static;background:none;font-size:11px;word-break:break-all;color:#9086ac;margin-top:204px;pointer-events:auto';d.textContent=f.src+' · allow='+f.allow;w.appendChild(d)}};
 if(diff){const q=document.createElement('button');q.id='sq';q.setAttribute('aria-label','Lancer la musique');q.style.cssText='display:block;width:200px;height:200px;background:#000;border:0;padding:0;cursor:pointer';q.onclick=creer;w.appendChild(q)}else creer()}
 function pickRnd(){let base=DB.filter(matches);if(!base.length)return null;
 let p=base.filter(x=>!g.played.includes(x.id)&&x!==g.next);if(!p.length){g.played=[];p=base.filter(x=>x!==g.next);if(!p.length)p=base}return p[Math.random()*p.length|0]}
