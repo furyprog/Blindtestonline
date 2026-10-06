@@ -69,7 +69,7 @@ details>summary{cursor:pointer;font-weight:700;font-size:17px;list-style:none}de
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.0.9';
+const VERSION='1.0.10';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -252,7 +252,8 @@ function mk(t,pos,cb,direct){rmIframe();if(BL)window.removeEventListener('blur',
 f.src='https://www.youtube-nocookie.com/embed/'+t.vid+'?playsinline=1&controls=0&fs=0&disablekb=1&rel=0&iv_load_policy=3&modestbranding=1'+(pos>1?'&start='+Math.floor(pos):'')+(direct?'&autoplay=1':'');
 const lo=document.createElement('div');lo.id='lo';lo.textContent='⏳ Chargement…';
 f.onload=()=>{const l=$('lo');if(l)l.remove()};
-BL=()=>setTimeout(()=>{if(document.activeElement===f)cb()},0);window.addEventListener('blur',BL);
+/* petit délai : laisse au clic le temps d'arriver jusqu'au lecteur avant que l'affichage ne change (sinon Firefox perd le clic) */
+BL=()=>setTimeout(()=>{if(document.activeElement===f)cb()},350);window.addEventListener('blur',BL);
 $('ytw').appendChild(f);$('ytw').appendChild(lo)}
 function pickRnd(){let base=DB.filter(matches);if(!base.length)return null;
 let p=base.filter(x=>!g.played.includes(x.id)&&x!==g.next);if(!p.length){g.played=[];p=base.filter(x=>x!==g.next);if(!p.length)p=base}return p[Math.random()*p.length|0]}
