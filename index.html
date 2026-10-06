@@ -69,7 +69,9 @@ details>summary{cursor:pointer;font-weight:700;font-size:17px;list-style:none}de
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.0.0';
+const VERSION='1.0.1';
+// Commande de volume envoyée au lecteur tiers du jeu et du solo (peut déclencher le démarrage automatique de la musique) : laisser false
+const VOLUME_LECTEUR_TIERS=false;
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -247,10 +249,10 @@ function changeCode(){askPrompt('Code administrateur actuel :',async old=>{const
 askPrompt('Nouveau code :',async v=>{if(v){const nh=await sha256(v);localStorage.setItem('bt_admin_hash',nh);alert('Code mis à jour sur cet appareil.')}})})}
 let BL;
 function rmIframe(){const o=$('sf');if(o)o.remove();const l=$('lo');if(l)l.remove()}
-function mk(t,pos,cb,auto){rmIframe();if(BL)window.removeEventListener('blur',BL);const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow=auto?'autoplay':'';f.style.border=0;
+function mk(t,pos,cb){rmIframe();if(BL)window.removeEventListener('blur',BL);const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow='autoplay';f.style.border=0;
 f.src='https://www.yout-ube.com/watch?v='+t.vid+(pos>1?'&t='+Math.floor(pos)+'s':'')+'&autoplay=1';
 const lo=document.createElement('div');lo.id='lo';lo.textContent='⏳ Chargement…';
-f.onload=()=>{const l=$('lo');if(l)l.remove();if(t.vol){try{f.contentWindow.postMessage(JSON.stringify({event:'command',func:'setVolume',args:[t.vol]}),'*')}catch(_){}}};
+f.onload=()=>{const l=$('lo');if(l)l.remove();if(VOLUME_LECTEUR_TIERS&&t.vol){try{f.contentWindow.postMessage(JSON.stringify({event:'command',func:'setVolume',args:[t.vol]}),'*')}catch(_){}}};
 BL=()=>setTimeout(()=>{if(document.activeElement===f)cb()},0);window.addEventListener('blur',BL);
 $('ytw').appendChild(f);$('ytw').appendChild(lo)}
 function pickRnd(){let base=DB.filter(matches);if(!base.length)return null;
@@ -310,7 +312,7 @@ function trainNext(){if(!TR.on||TR.phase=='final')return;rmIframe();if(BL)window
 if(TR.len&&TR.n>=TR.len){trainFinal();return}
 const b=DB.filter(matches);if(!b.length){TR.phase='idle';TR.cur=null;$('tb').innerHTML='<p class="m">Aucun titre ne correspond aux filtres choisis.</p>';return}
 let p=b.filter(x=>!TR.played.includes(x.id));if(!p.length){TR.played=[];p=b}const t=p[Math.random()*p.length|0];TR.played.push(t.id);TR.cur=t;TR.phase='ready';TR.a=TR.t=false;trainRender();mk(t,0,trainGo)}
-function trainReplay(){mk(TR.cur,0,()=>{if(BL)window.removeEventListener('blur',BL)},true);toast("👆 Touche le carré noir pour réécouter")}
+function trainReplay(){mk(TR.cur,0,()=>{if(BL)window.removeEventListener('blur',BL)});toast("👆 Touche le carré noir pour réécouter")}
 function trainFinal(){gc('solo-serie-finie','Série solo terminée');TR.phase='final';rmIframe();TR.prev=TR.len?brGet(bkey()):null;TR.newRec=!!TR.len&&(!TR.prev||TR.score>TR.prev.pts);if(TR.newRec)brSet(bkey(),{pts:TR.score,date:new Date().toLocaleDateString('fr-FR')});snd(TR.newRec?'win':'ok');trainRender()}
 function trainGo(){if(TR.phase!='ready')return;if(BL)window.removeEventListener('blur',BL);TR.phase='play';TR.end=Date.now()+SET.maxD*1000;TR.lt=0;trainRender()}
 function trainBuzz(){if(TR.phase!='play')return;rmIframe();TR.bz++;TR.phase='think';TR.end=Date.now()+SET.tRep*1000;TR.lt=0;snd('buzz');vib(80);trainRender()}
