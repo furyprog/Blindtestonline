@@ -244,7 +244,7 @@ function changeCode(){askPrompt('Code administrateur actuel :',async old=>{const
 askPrompt('Nouveau code :',async v=>{if(v){const nh=await sha256(v);localStorage.setItem('bt_admin_hash',nh);alert('Code mis à jour sur cet appareil.')}})})}
 let BL;
 function rmIframe(){const o=$('sf');if(o)o.remove();const l=$('lo');if(l)l.remove()}
-function mk(t,pos,cb){rmIframe();if(BL)window.removeEventListener('blur',BL);const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow='autoplay';f.style.border=0;
+function mk(t,pos,cb,pasAuto){rmIframe();if(BL)window.removeEventListener('blur',BL);const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow=pasAuto?'':'autoplay';f.style.border=0;
 f.src='https://www.yout-ube.com/watch?v='+t.vid+(pos>1?'&t='+Math.floor(pos)+'s':'')+'&autoplay=1';
 const lo=document.createElement('div');lo.id='lo';lo.textContent='⏳ Chargement…';
 f.onload=()=>{const l=$('lo');if(l)l.remove();if(t.vol){try{f.contentWindow.postMessage(JSON.stringify({event:'command',func:'setVolume',args:[t.vol]}),'*')}catch(_){}}};
@@ -306,11 +306,10 @@ function trainQuit(){clearInterval(TR.iv);rmIframe();if(BL)window.removeEventLis
 function trainNext(){if(!TR.on||TR.phase=='final')return;rmIframe();if(BL)window.removeEventListener('blur',BL);
 if(TR.len&&TR.n>=TR.len){trainFinal();return}
 const b=DB.filter(matches);if(!b.length){TR.phase='idle';TR.cur=null;$('tb').innerHTML='<p class="m">Aucun titre ne correspond aux filtres choisis.</p>';return}
-let p=b.filter(x=>!TR.played.includes(x.id));if(!p.length){TR.played=[];p=b}const t=p[Math.random()*p.length|0];TR.played.push(t.id);TR.cur=t;TR.phase='ready';TR.a=TR.t=false;trainRender()}
+let p=b.filter(x=>!TR.played.includes(x.id));if(!p.length){TR.played=[];p=b}const t=p[Math.random()*p.length|0];TR.played.push(t.id);TR.cur=t;TR.phase='ready';TR.a=TR.t=false;trainRender();mk(t,0,trainGo,true)}
 function trainReplay(){mk(TR.cur,0,()=>{if(BL)window.removeEventListener('blur',BL)});toast("👆 Touche le carré noir pour réécouter")}
 function trainFinal(){gc('solo-serie-finie','Série solo terminée');TR.phase='final';rmIframe();TR.prev=TR.len?brGet(bkey()):null;TR.newRec=!!TR.len&&(!TR.prev||TR.score>TR.prev.pts);if(TR.newRec)brSet(bkey(),{pts:TR.score,date:new Date().toLocaleDateString('fr-FR')});snd(TR.newRec?'win':'ok');trainRender()}
 function trainGo(){if(TR.phase!='ready')return;if(BL)window.removeEventListener('blur',BL);TR.phase='play';TR.end=Date.now()+SET.maxD*1000;TR.lt=0;trainRender()}
-function trainTap(){if(TR.phase!='ready')return;mk(TR.cur,0,()=>{});trainGo()}
 function trainBuzz(){if(TR.phase!='play')return;rmIframe();TR.bz++;TR.phase='think';TR.end=Date.now()+SET.tRep*1000;TR.lt=0;snd('buzz');vib(80);trainRender()}
 function trainReveal(){if(TR.phase!='think')return;TR.phase='reveal';TR.a=false;TR.t=false;TR.end=Date.now()+SET.tAnn*1000;TR.lt=0;trainRender()}
 function trainMiss(){rmIframe();TR.n++;TR.ms++;TR.pts=0;TR.phase='miss';trainRender()}
@@ -325,7 +324,7 @@ else{const i=$('tyi'),now=Date.now();if(i&&i.value&&document.activeElement===i&&
 function trainRender(){const b=$('tb');if(!b||!TR.on)return;const t=TR.cur,p=TR.phase,bs=TR.len?brGet(bkey()):null;
 const rp=`<button class="g" style="width:100%;margin-top:8px" onclick="trainReplay()">🔁 Réécouter l'extrait</button>`,nx=`<button class="p" style="width:100%;margin-top:8px" onclick="trainNext()">${TR.len&&TR.n>=TR.len?'🏁 Voir le score final':'▶ Titre suivant'}</button>`;
 let h=`<div class="m" style="text-align:center">🎧 Entraînement · ${TR.len?'titre '+Math.min(TR.n+(['play','think','reveal','ready'].includes(p)?1:0),TR.len)+'/'+TR.len:TR.n+' joué(s)'} · ${pts(TR.score)}${bs?' · record '+bs.pts:''}</div><div id="tcd" class="cd"></div>`;
-if(p=='ready')h+=`<div class="big" style="text-align:center">👆 Touche le carré noir pour lancer la musique</div><p class="m" style="text-align:center">Buzze avant la fin de l'extrait (${SET.maxD} s) pour tenter ta chance.</p><button onclick="trainTap()" style="display:block;width:200px;height:200px;margin:12px auto 0;background:#000;color:#fff;border:2px solid #352d54;border-radius:16px;font-size:44px;cursor:pointer">▶</button>`;
+if(p=='ready')h+=`<div class="big" style="text-align:center">👆 Touche le carré noir pour lancer la musique</div><p class="m" style="text-align:center">Buzze avant la fin de l'extrait (${SET.maxD} s) pour tenter ta chance.</p>`;
 else if(p=='play')h+=`<button class="p" style="width:100%;font-size:30px;padding:28px" onclick="trainBuzz()">🔔 BUZZ !</button>`;
 else if(p=='think')h+=`<div class="big" style="text-align:center">🤔 Artiste ? Titre ? Réfléchis…</div><button style="width:100%;margin-top:10px" onclick="trainReveal()">👁 Voir la réponse</button>`;
 else if(p=='reveal')h+=`<div class="big" style="text-align:center">${e(t.artist)} — ${e(t.title)}</div><p class="m" style="text-align:center">Avais-tu trouvé ?</p><div class="row"><button id="tga" onclick="trainTog('a')">Artiste (+1)</button><button id="tgt" onclick="trainTog('t')">Titre (+1)</button></div>${SET.ymode==2?`<button class="p" style="width:100%;margin-top:10px" onclick="trainResult()">Valider</button>`:`<div class="row" style="margin-top:10px"><input id="tyi" type="number" inputmode="numeric" placeholder="📅 En quelle année ?" oninput="TR.lk=Date.now()"><button class="p" onclick="trainResult()">Valider</button></div>`}${rp}`;
