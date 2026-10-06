@@ -73,7 +73,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.1.4';
+const VERSION='1.1.5';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -286,7 +286,10 @@ function setDuo(v){if(!['idle','over'].includes(g.phase)){toast('Arrête ou term
 if(+v&&Object.keys(conns).length>1){toast('Un seul joueur doit être connecté en mode Duo');hostUI();return}
 modeSet(+v);
 if(SET.duo)OPEN.code=true;g.hn=hn();g.scores={};if(SET.duo)g.scores[g.hn]=0;Object.values(conns).forEach(c=>{if(c.n)g.scores[c.n]=0});g.msg=SET.duo?'Mode Duo : le joueur 2 scanne le QR code, puis clique sur « Nouvelle partie ».':'Clique sur « Nouvelle partie » pour commencer.';hostUI()}
-function setHn(el){localStorage.setItem('bt_duo_name',el.value.trim().slice(0,16)||'Joueur 1');el.value=hn()}
+function setHn(el){const old=g.hn||hn(),v=el.value.trim().slice(0,16)||'Joueur 1';
+if(!['idle','over'].includes(g.phase)){toast('Change ton pseudo avant de démarrer la partie');el.value=old;return}
+if(Object.keys(conns).includes(v)){toast('Ce pseudo est déjà pris par le joueur 2');el.value=old;return}
+localStorage.setItem('bt_duo_name',v);g.hn=v;if(old!=v&&g.scores&&old in g.scores){g.scores[v]=g.scores[old];delete g.scores[old]}el.value=v;upd()}
 function hostBuzz(){if(!SET.duo||g.phase!='play')return;snd('buzz');vib(80);pauseBy(g.hn||hn())}
 function duoSee(){g.seen=true;upd()}
 function dpen(){if(g.phase!='judge'||g.j.a||g.j.t)return;const n=g.buzz[g.active];if(n&&SET.pen){g.scores[n]=(g.scores[n]||0)-SET.pen;g.lastPen={n,p:SET.pen};snd('gong')}rev()}
@@ -310,7 +313,7 @@ let h=`<div class="big" style="margin:10px 0">🎤 ${e(n)} répond, à voix haut
 if(!g.seen)return h+`<button class="p" onclick="duoSee()">👁 Voir la réponse</button>`;
 return h+`<div class="big">${e(g.cur.artist)} — ${e(g.cur.title)} (${g.cur.year})</div>`+jHTML({a:g.j.a,t:g.j.t,ym:SET.ymode,yd:SET.yd,pen:SET.pen},hostCall,`value="${yv}" oninput="yv=this.value"`)}
 const qrc=l=>{if(qrc.l!=l){qrc.l=l;qrc.c=qr(l)}return qrc.c};
-function duoExtra(){let h='';if(!other()){const link=location.href.split('#')[0]+'#'+code;h+=`<div class="card" style="text-align:center;margin:10px 0"><div class="big">📲 Le joueur 2 scanne ce code</div><img src="${qrc(link)}" width="190" alt="QR code de la partie"><p class="m">ou ouvre <b>${e(link)}</b><br>Code : <b>${code}</b></p><p class="m">⏳ En attente du joueur 2…</p></div>`}
+function duoExtra(){let h='';if(['idle','over'].includes(g.phase))h+=`<div class="row" style="align-items:flex-end;margin:8px 0"><div><label class="m">✏️ Ton pseudo (joueur 1)</label><input id="hnin" maxlength="16" value="${e(g.hn||hn())}" onchange="setHn(this)"></div></div>`;if(!other()){const link=location.href.split('#')[0]+'#'+code;h+=`<div class="card" style="text-align:center;margin:10px 0"><div class="big">📲 Le joueur 2 scanne ce code</div><img src="${qrc(link)}" width="190" alt="QR code de la partie"><p class="m">ou ouvre <b>${e(link)}</b><br>Code : <b>${code}</b></p><p class="m">⏳ En attente du joueur 2…</p></div>`}
 if(g.phase=='ready'&&g.reveal)h+=`<div class="big">✅ ${e(g.reveal.a)} — ${e(g.reveal.t)} (${g.reveal.y})</div>`+(g.lastPen?`<p class="m">❌ ${e(g.lastPen.n)} perd ${pts(g.lastPen.p)}</p>`:'');
 if(g.phase=='play')h+=`<button class="buzz" onclick="hostBuzz()">🔴 BUZZ</button>`;
 return h}
@@ -327,7 +330,7 @@ function nxt(){if(g.active+1<g.buzz.length){g.active++;g.j={};g.msg='🎤 Au tou
 function rev(){if(g.phase=='over')return;g.seen=false;const t=g.cur;g.reveal={a:t.artist,t:t.title,y:t.year};g.phase='done';g.tEnd=0;g.tk='';if(checkWin())return;arm()}
 function bz(){return g.buzz.length?`<ul>${g.buzz.map((n,i)=>`<li class="${g.phase=='judge'&&i==g.active?'on':''}">${i+1}. ${e(n)}${SET.teams&&g.tm&&g.tm[n]?' · '+g.tm[n]:''}</li>`).join('')}</ul>`:'<p class="m">Aucun buzz.</p>'}
 function upd(){saveSession();const st={phase:g.phase,buzz:g.buzz,active:g.active,scores:Object.fromEntries(ranking()),msg:g.phase=='ready'?'⏳ Prépare-toi, le prochain titre arrive…':g.phase=='wait'?'⏸ Musique en pause…':g.msg,reveal:g.reveal,tl:g.tEnd?Math.max(0,g.tEnd-Date.now()):0,tk:g.tk||'',exp:!!g.exp,yr:!!(g.j.a||g.j.t)&&SET.ymode!=2,bo:!!g.bo,teams:SET.teams,ps:SET.teams?g.ps||{}:null,tm:SET.teams?g.tm||{}:null,rd:SET.rr&&g.reveal?rdState():null,winner:g.winner||null,wp:g.winner?g.scores[g.winner]:0,duo:SET.duo?1:0,hn:g.hn||'',ym:SET.ymode,yd:SET.yd,pen:SET.pen,j:{a:!!g.j.a,t:!!g.j.t},lp:g.lastPen||null};Object.values(conns).forEach(c=>c.open&&c.send({t:'s',s:st}));
-if(!$('pn'))return;if(keepIn){keepIn=false;cdUpd();return}$('np').textContent=SET.duo?(other()?'Joueur 2 : '+other():'⏳ En attente du joueur 2…'):Object.keys(conns).length+' joueur(s) connecté(s)';
+if(!$('pn'))return;if(keepIn){keepIn=false;cdUpd();return}if(document.activeElement&&document.activeElement.id=='hnin'){return}$('np').textContent=SET.duo?(other()?'Joueur 2 : '+other():'⏳ En attente du joueur 2…'):Object.keys(conns).length+' joueur(s) connecté(s)';
 let h=`<div id="cd" class="cd"></div>${g.bo&&['play','judge','wait'].includes(g.phase)?'<div class="cd">⭐ MANCHE BONUS : année ×2</div>':''}<div class="m">${e(g.msg)}</div>${rdBox(SET.rr&&g.reveal?rdState():null)}`+((g.phase=='ready'?g.next:g.cur)&&g.phase!='idle'&&(!SET.duo||g.seen)?`<div class="big">${g.phase=='ready'?'⏭ À suivre :':'🎵'} ${vdot(g.phase=='ready'?g.next:g.cur,1)}${e((g.phase=='ready'?g.next:g.cur).artist)} — ${e((g.phase=='ready'?g.next:g.cur).title)} (${(g.phase=='ready'?g.next:g.cur).year})</div>`:'')+bz()+(SET.duo?duoExtra():'');
 if(g.phase=='ready')h+=`<p class="m" style="margin-top:6px">Le titre ne se lance pas ? <button class="g" onclick="arm(g.next)">🔁 Réessayer</button> <button class="g" onclick="arm()">⏭ Changer de titre</button></p>`;
 if(g.phase=='play')h+=`<p class="m" style="margin-top:6px">Toujours pas de son ? <button class="g" onclick="retryCur()">🔁 Réessayer</button> <button class="g" onclick="rev()">⏭ Passer ce titre</button></p>`;
