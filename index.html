@@ -69,7 +69,7 @@ details>summary{cursor:pointer;font-weight:700;font-size:17px;list-style:none}de
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.0.10';
+const VERSION='1.0.11';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -316,12 +316,14 @@ function trainReplay(){mk(TR.cur,0,()=>{if(BL)window.removeEventListener('blur',
 function trainFinal(){gc('solo-serie-finie','Série solo terminée');TR.phase='final';rmIframe();TR.prev=TR.len?brGet(bkey()):null;TR.newRec=!!TR.len&&(!TR.prev||TR.score>TR.prev.pts);if(TR.newRec)brSet(bkey(),{pts:TR.score,date:new Date().toLocaleDateString('fr-FR')});snd(TR.newRec?'win':'ok');trainRender()}
 function trainGo(){if(TR.phase!='ready')return;if(BL)window.removeEventListener('blur',BL);TR.phase='play';TR.end=Date.now()+SET.maxD*1000;TR.lt=0;trainRender()}
 function trainBuzz(){if(TR.phase!='play')return;rmIframe();TR.bz++;TR.phase='think';TR.end=Date.now()+SET.tRep*1000;TR.lt=0;snd('buzz');vib(80);trainRender()}
-function trainReveal(){if(TR.phase!='think')return;TR.phase='reveal';TR.a=false;TR.t=false;TR.end=Date.now()+SET.tAnn*1000;TR.lt=0;trainRender()}
+function trainReveal(){if(TR.phase!='think')return;TR.phase='reveal';TR.a=false;TR.t=false;TR.end=0;TR.lt=0;trainRender()}
 function trainMiss(){rmIframe();TR.n++;TR.ms++;TR.pts=0;TR.phase='miss';trainRender()}
-function trainTog(k){TR[k]=!TR[k];$('tg'+k).className=TR[k]?'p':''}
-function trainResult(){if(TR.phase!='reveal')return;const i=$('tyi'),y=i?+i.value||0:0;let yp=0;if(y){const d=Math.abs(y-TR.cur.year);yp=d==0?2:d<=SET.yd?1:0}
-TR.y=y;TR.yp=yp;TR.pts=(TR.a?1:0)+(TR.t?1:0)+yp;TR.score+=TR.pts;TR.n++;if(TR.a)TR.fa++;if(TR.t)TR.ft++;if(yp==2)TR.fy++;TR.phase='result';if(TR.pts)snd('ok');trainRender()}
-function trainTick(){if(!TR.on||!['play','think','reveal'].includes(TR.phase))return;if(TR.phase=='reveal'&&SET.ymode==2){const e2=$('tcd');if(e2)e2.textContent='';return}const p=TR.phase,l=TR.end-Date.now(),el=$('tcd');
+/* l'année n'est possible qu'après avoir trouvé l'artiste ou le titre ; son chrono démarre à cet instant précis */
+function trainTog(k){const had=TR.a||TR.t;TR[k]=!TR[k];if(SET.ymode!=2){const has=TR.a||TR.t;if(!had&&has){TR.end=Date.now()+SET.tAnn*1000;TR.lt=0;TR.lk=0}else if(had&&!has)TR.end=0}trainYr()}
+function trainYr(){const on=!!(TR.a||TR.t);['a','t'].forEach(k=>{const el=$('tg'+k);if(el)el.className=TR[k]?'p':''});const r=$('tyr'),n=$('tyn'),v=$('tvn');if(r)r.style.display=on?'':'none';if(n)n.style.display=on?'none':'';if(v)v.style.display=on?'none':''}
+function trainResult(){if(TR.phase!='reveal')return;const i=$('tyi'),y=i?+i.value||0:0;let yp=0;const okA=TR.a||TR.t;if(y&&okA){const d=Math.abs(y-TR.cur.year);yp=d==0?2:d<=SET.yd?1:0}
+TR.y=okA?y:0;TR.yp=yp;TR.pts=(TR.a?1:0)+(TR.t?1:0)+yp;TR.score+=TR.pts;TR.n++;if(TR.a)TR.fa++;if(TR.t)TR.ft++;if(yp==2)TR.fy++;TR.phase='result';if(TR.pts)snd('ok');trainRender()}
+function trainTick(){if(!TR.on||!['play','think','reveal'].includes(TR.phase))return;if(TR.phase=='reveal'&&(SET.ymode==2||!(TR.a||TR.t))){const e2=$('tcd');if(e2)e2.textContent='';return}const p=TR.phase,l=TR.end-Date.now(),el=$('tcd');
 if(el)el.textContent=(p=='play'?'🎵 Écoute : ':p=='think'?'⏱ Réponse : ':'📅 Année : ')+Math.max(0,Math.ceil(l/1000))+' s';
 if(p!='play'){const q=Math.ceil(l/1000);if(q<=5&&q>0&&q!==TR.lt){TR.lt=q;snd('tick')}}
 if(l<=0){if(p=='play'){snd('gong');trainMiss()}else if(p=='think'){snd('gong');trainReveal()}
@@ -332,13 +334,13 @@ let h=`<div class="m" style="text-align:center">🎧 Entraînement · ${TR.len?'
 if(p=='ready')h+=`<div class="big" style="text-align:center">👆 Touche le carré noir pour lancer la musique</div><p class="m" style="text-align:center">Buzze avant la fin de l'extrait (${SET.maxD} s) pour tenter ta chance.</p>`;
 else if(p=='play')h+=`<button class="p" style="width:100%;font-size:30px;padding:28px" onclick="trainBuzz()">🔔 BUZZ !</button>`;
 else if(p=='think')h+=`<div class="big" style="text-align:center">🤔 Artiste ? Titre ? Réfléchis…</div><button style="width:100%;margin-top:10px" onclick="trainReveal()">👁 Voir la réponse</button>`;
-else if(p=='reveal')h+=`<div class="big" style="text-align:center">${e(t.artist)} — ${e(t.title)}</div><p class="m" style="text-align:center">Avais-tu trouvé ?</p><div class="row"><button id="tga" onclick="trainTog('a')">Artiste (+1)</button><button id="tgt" onclick="trainTog('t')">Titre (+1)</button></div>${SET.ymode==2?`<button class="p" style="width:100%;margin-top:10px" onclick="trainResult()">Valider</button>`:`<div class="row" style="margin-top:10px"><input id="tyi" type="number" inputmode="numeric" placeholder="📅 En quelle année ?" oninput="TR.lk=Date.now()"><button class="p" onclick="trainResult()">Valider</button></div>`}${rp}`;
+else if(p=='reveal')h+=`<div class="big" style="text-align:center">${e(t.artist)} — ${e(t.title)}</div><p class="m" style="text-align:center">Avais-tu trouvé ?</p><div class="row"><button id="tga" onclick="trainTog('a')">Artiste (+1)</button><button id="tgt" onclick="trainTog('t')">Titre (+1)</button></div>${SET.ymode==2?`<button class="p" style="width:100%;margin-top:10px" onclick="trainResult()">Valider</button>`:`<p id="tyn" class="m" style="text-align:center;margin-top:10px">📅 L'année n'est possible qu'après avoir trouvé l'artiste ou le titre.</p><div id="tyr" class="row" style="margin-top:10px;display:none"><input id="tyi" type="number" inputmode="numeric" placeholder="📅 En quelle année ?" oninput="TR.lk=Date.now()"><button class="p" onclick="trainResult()">Valider</button></div><button id="tvn" class="p" style="width:100%;margin-top:10px" onclick="trainResult()">Valider (0 point)</button>`}${rp}`;
 else if(p=='miss')h+=`<div class="big" style="text-align:center">⏰ Temps écoulé !</div><p class="big" style="text-align:center">${e(t.artist)} — ${e(t.title)} (${t.year})</p>${rp}${nx}`;
 else if(p=='result'){const dy=TR.y?Math.abs(TR.y-t.year):null;h+=`<div class="big" style="text-align:center">${e(t.artist)} — ${e(t.title)} (${t.year})</div><div class="card" style="margin:10px 0"><div class="ld"><span>Artiste</span><b>${TR.a?'+1':'0'}</b></div><div class="ld"><span>Titre</span><b>${TR.t?'+1':'0'}</b></div>${SET.ymode==2?'':`<div class="ld"><span>Année${TR.y?' ('+TR.y+(dy?', écart '+dy+' an'+(dy>1?'s':''):', exacte')+')':' (non saisie)'}</span><b>+${TR.yp}</b></div>`}<div class="ld"><span><b>Total</b></span><b>+${TR.pts}</b></div></div>${rp}${nx}`}
 else if(p=='final'){const n=TR.n||1,rec=!TR.len?'':TR.newRec?(TR.prev?`🏆 Nouveau record ! (ancien : ${pts(TR.prev.pts)})`:'🏆 Record enregistré sur cet appareil !'):`Record à battre : ${pts(TR.prev.pts)} (${e(TR.prev.date||'')})`;
 h+=`<div class="big" style="text-align:center">🏁 Série terminée</div><div class="big" style="text-align:center;color:var(--a)">${pts(TR.score)} sur ${TR.len*(SET.ymode==2?2:4)}</div>${rec?`<p class="big" style="text-align:center">${rec}</p>`:''}<div class="card" style="margin:10px 0"><div class="ld"><span>Artistes trouvés</span><b>${TR.fa}/${TR.n}</b></div><div class="ld"><span>Titres trouvés</span><b>${TR.ft}/${TR.n}</b></div>${SET.ymode==2?'':`<div class="ld"><span>Années exactes</span><b>${TR.fy}/${TR.n}</b></div>`}<div class="ld"><span>Buzz dans le temps</span><b>${TR.bz}/${TR.n}</b></div></div><button class="p" style="width:100%" onclick="trainRestart()">🔁 Nouvelle série</button><button style="width:100%;margin-top:8px" onclick="trainQuit()">← Accueil</button>`}
 if(['ready','play','think','reveal'].includes(p))h+=`<button class="g" style="width:100%;margin-top:10px" onclick="trainNext()">⏭ Passer le morceau</button>`;
-b.innerHTML=h;trainTick()}
+b.innerHTML=h;if(p=='reveal')trainYr();trainTick()}
 let scStream=null,scTimer=null;
 async function scanQR(){
 $('sc').innerHTML='<div class="box" style="max-width:420px;width:100%"><h3>📷 Scanner le QR code</h3><video id="scv" playsinline muted autoplay style="width:100%;border-radius:16px;background:#000"></video><p class="m" id="scm">Place le QR code de la partie dans le cadre.</p><div class="row"><button class="g" onclick="scanStop()">Annuler</button></div></div>';$('sc').hidden=false;
