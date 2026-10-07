@@ -73,7 +73,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.1.8';
+const VERSION='1.1.9';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -104,7 +104,7 @@ const fmt=(l,k)=>(k=='mus'?'🎵 Écoute : ':k=='ans'?'⏱ Réponse : ':'📅 An
 const conf=()=>Array.from({length:24},(_,i)=>`<span style="left:${i*4.2}%;animation-delay:${(i%8)*.35}s">${['🎉','⭐','🎵','🏆'][i%4]}</span>`).join('');
 function startAns(){g.tk='ans';g.tEnd=Date.now()+SET.tRep*1000;g.exp=false;g.lt=0}
 function cdUpd(){const el=$('cd');if(el&&g)el.textContent=g.tEnd?fmt(Math.max(0,g.tEnd-Date.now()),g.tk)+(g.exp?' — ⏰ temps écoulé':''):''}
-function tick(){if(!g||!g.phase)return;if(g.phase=='play'&&g.tk=='mus'&&g.tEnd&&Date.now()>g.tEnd+500){endRound();return}if(g.tEnd&&!g.exp&&g.tk!='mus'&&Date.now()>=g.tEnd){g.exp=true;snd('gong');keepIn=!!(document.activeElement&&document.activeElement.id=='yin');upd();return}if(g.tEnd&&!g.exp&&g.tk!='mus'){const l=Math.ceil((g.tEnd-Date.now())/1000);if(l<=5&&l>0&&l!==g.lt){g.lt=l;snd('tick')}}cdUpd()}
+function tick(){if(!g||!g.phase)return;if(g.pf&&g.phase=='play'){g.tEnd=Date.now()+g.rem;cdUpd();return}if(g.phase=='play'&&g.tk=='mus'&&g.tEnd&&Date.now()>g.tEnd+500){endRound();return}if(g.tEnd&&!g.exp&&g.tk!='mus'&&Date.now()>=g.tEnd){g.exp=true;snd('gong');keepIn=!!(document.activeElement&&document.activeElement.id=='yin');upd();return}if(g.tEnd&&!g.exp&&g.tk!='mus'){const l=Math.ceil((g.tEnd-Date.now())/1000);if(l<=5&&l>0&&l!==g.lt){g.lt=l;snd('tick')}}cdUpd()}
 let keepIn=false,plt=0;function pcd(){const el=$('cd');if(!S||!el)return;const l=S.tl-(Date.now()-S.at);if(S.phase=='judge'&&S.tk!='mus'&&!S.exp&&S.tl&&S.buzz[S.active]==me){const q=Math.ceil(l/1000);if(q<=5&&q>0&&q!==plt){plt=q;snd('tick')}}el.textContent=S.exp?'⏰ Temps écoulé !':S.tl?fmt(Math.max(0,l),S.tk):''}
 setInterval(tick,250);setInterval(pcd,250);
 function checkWin(){const w=SET.win,b=Object.entries(g.scores).sort((x,y)=>y[1]-x[1])[0];if(!w||!b||b[1]<w)return false;g.winner=b[0];g.phase='over';g.tEnd=0;g.msg='🏆 '+b[0]+' remporte la partie avec '+pts(b[1])+' !';snd('win');upd();return true}
@@ -258,7 +258,7 @@ function mk(t,pos,cb,direct){rmIframe();if(BL)window.removeEventListener('blur',
 /* lecteur intégré officiel de YouTube (confidentialité renforcée) : chargé tout de suite mais en pause, il ne démarre qu'au toucher du carré noir (sauf réécoute : direct) */
 f.src='https://www.youtube-nocookie.com/embed/'+t.vid+'?playsinline=1&controls=0&fs=0&disablekb=1&rel=0&iv_load_policy=3&modestbranding=1'+(pos>1?'&start='+Math.floor(pos):'')+'&enablejsapi=1'+(direct?'&autoplay=1':'');
 const lo=document.createElement('div');lo.id='lo';lo.textContent='⏳ Chargement…';
-YS=0;maskRefresh();f.onload=()=>{const l=$('lo');if(l)l.remove();try{f.contentWindow.postMessage(JSON.stringify({event:'listening',id:1,channel:'widget'}),'*')}catch(_){}};
+YS=0;g&&(g.pf=false);TR.pf=false;maskRefresh();f.onload=()=>{const l=$('lo');if(l)l.remove();try{f.contentWindow.postMessage(JSON.stringify({event:'listening',id:1,channel:'widget'}),'*')}catch(_){}};
 /* petit délai : laisse au clic le temps d'arriver jusqu'au lecteur avant que l'affichage ne change (sinon Firefox perd le clic) */
 BL=()=>setTimeout(()=>{if(document.activeElement===f)cb()},350);window.addEventListener('blur',BL);
 $('ytw').appendChild(f);$('ytw').appendChild(lo)}
@@ -269,7 +269,7 @@ if(!DB.length){rmIframe();g.phase='idle';g.msg="Ajoute des titres dans l'onglet 
 t=t||pickRnd();if(!t){rmIframe();g.phase='idle';g.msg="Aucun titre ne correspond aux filtres choisis.";upd();return}
 g.next=t;g.phase='ready';g.msg='👆 Prêt : touche le carré noir pour lancer la musique';upd();mk(t,0,go)}
 function go(){if(g.phase!='ready'||!g.next)return;if(BL)window.removeEventListener('blur',BL);g.cur=g.next;g.played.push(g.cur.id);g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.seen=false;g.lastPen=null;g.rd={};g.rp={};g.sp={};g.bt={};g.phase='play';g.msg='🎧 Buzz !';g.n=(g.n||0)+1;g.bo=!!(SET.bonus&&g.n%SET.bonus==0)&&SET.ymode!=2;g.rem=SET.maxD*1000;g.pos=0;g.t1=Date.now();g.tk='mus';g.tEnd=g.t1+g.rem;g.exp=false;upd();tm=setTimeout(endRound,g.rem)}
-function pauseBy(n){clearTimeout(tm);const el=Date.now()-g.t1;g.rem-=el;g.pos+=el/1000;rmIframe();(g.bt=g.bt||{})[n]=g.pos;g.buzz.push(n);g.active=g.buzz.length-1;g.j={};g.phase='judge';g.msg='🎤 Au tour de '+n;startAns();upd()}
+function pauseBy(n){clearTimeout(tm);const el=g.pf?0:Date.now()-g.t1;g.pf=false;g.rem-=el;g.pos+=el/1000;rmIframe();(g.bt=g.bt||{})[n]=g.pos;g.buzz.push(n);g.active=g.buzz.length-1;g.j={};g.phase='judge';g.msg='🎤 Au tour de '+n;startAns();upd()}
 function resume(){if(g.phase!='wait')return;if(BL)window.removeEventListener('blur',BL);g.phase='play';g.msg='🎧 Buzz !';g.t1=Date.now();g.tk='mus';g.tEnd=g.t1+g.rem;g.exp=false;upd();tm=setTimeout(endRound,g.rem)}
 function endRound(){clearTimeout(tm);rmIframe();if(g.cur&&g.phase=='play')rev()}
 function wrong(){if(g.active+1<g.buzz.length){g.active++;g.j={};g.msg='🎤 Au tour de '+g.buzz[g.active];startAns();upd();return}
@@ -333,7 +333,12 @@ function bz(){return g.buzz.length?`<ul>${g.buzz.map((n,i)=>`<li class="${g.phas
 let YS=0;
 window.addEventListener('message',e=>{if(!/youtube(-nocookie)?\.com$/.test((e.origin||'').replace(/^https?:\/\//,'')))return;let d=e.data;try{if(typeof d=='string')d=JSON.parse(d)}catch(_){return}
 let st=null;if(d&&d.event=='onStateChange')st=d.info;else if(d&&d.event=='infoDelivery'&&d.info&&typeof d.info.playerState=='number')st=d.info.playerState;
-if(st===null||st===YS)return;YS=st;maskRefresh()});
+if(st===null||st===YS)return;YS=st;musClock(st);maskRefresh()});
+function musClock(st){try{const n=Date.now();
+if(typeof TR!='undefined'&&TR.on){if(TR.phase!='play')return;if(st==2&&!TR.pf){TR.rem=Math.max(0,TR.end-n);TR.pf=true}else if(st==1&&TR.pf){TR.pf=false;TR.end=n+TR.rem}return}
+if(!g||g.phase!='play'||g.tk!='mus')return;
+if(st==2&&!g.pf){const el=n-g.t1;g.rem-=el;g.pos+=el/1000;clearTimeout(tm);g.pf=true;g.tEnd=n+g.rem;upd()}
+else if(st==1&&g.pf){g.pf=false;g.t1=n;g.tEnd=n+g.rem;clearTimeout(tm);tm=setTimeout(endRound,g.rem);upd()}}catch(_){}}
 function maskRefresh(){try{const ph=(typeof TR!='undefined'&&TR.on)?TR.phase:g.phase;setMask(maskTxt(ph=='ready'?'lancer':ph=='wait'?'reprendre':ph=='play'?'pause':''))}catch(_){}}
 function maskTxt(v){if(YS==1)return 'Touche ici pour arrêter la musique';if(v=='lancer')return 'Touche ici pour lancer la musique';if(v=='reprendre'||(v=='pause'&&YS==2))return 'Touche ici pour reprendre la musique';return ''}
 function setMask(txt){const m=document.querySelector('#ytw>div:not(#lo)');if(!m)return;const k=txt||'';if(m.dataset.k===k)return;m.dataset.k=k;m.innerHTML=txt?`<span style="font-size:36px">👆</span><span style="font-size:15px;font-weight:700;line-height:1.25;padding:0 10px;text-align:center;color:#fff">${txt}</span>`:'🎵'}
@@ -379,7 +384,7 @@ function trainTog(k){const had=TR.a||TR.t;TR[k]=!TR[k];if(SET.ymode!=2){const ha
 function trainYr(){const on=!!(TR.a||TR.t);['a','t'].forEach(k=>{const el=$('tg'+k);if(el)el.className=TR[k]?'p':''});const r=$('tyr'),n=$('tyn'),v=$('tvn');if(r)r.style.display=on?'':'none';if(n)n.style.display=on?'none':'';if(v)v.style.display=on?'none':''}
 function trainResult(){if(TR.phase!='reveal')return;const i=$('tyi'),y=i?+i.value||0:0;let yp=0;const okA=TR.a||TR.t;if(y&&okA){const d=Math.abs(y-TR.cur.year);yp=d==0?2:d<=SET.yd?1:0}
 TR.y=okA?y:0;TR.yp=yp;TR.pts=(TR.a?1:0)+(TR.t?1:0)+yp;TR.score+=TR.pts;TR.n++;if(TR.a)TR.fa++;if(TR.t)TR.ft++;if(yp==2)TR.fy++;TR.phase='result';if(TR.pts)snd('ok');trainRender()}
-function trainTick(){if(!TR.on||!['play','think','reveal'].includes(TR.phase))return;if(TR.phase=='reveal'&&(SET.ymode==2||!(TR.a||TR.t))){const e2=$('tcd');if(e2)e2.textContent='';return}const p=TR.phase,l=TR.end-Date.now(),el=$('tcd');
+function trainTick(){if(!TR.on||!['play','think','reveal'].includes(TR.phase))return;if(TR.pf&&TR.phase=='play')TR.end=Date.now()+TR.rem;if(TR.phase=='reveal'&&(SET.ymode==2||!(TR.a||TR.t))){const e2=$('tcd');if(e2)e2.textContent='';return}const p=TR.phase,l=TR.end-Date.now(),el=$('tcd');
 if(el)el.textContent=(p=='play'?'🎵 Écoute : ':p=='think'?'⏱ Réponse : ':'📅 Année : ')+Math.max(0,Math.ceil(l/1000))+' s';
 if(p!='play'){const q=Math.ceil(l/1000);if(q<=5&&q>0&&q!==TR.lt){TR.lt=q;snd('tick')}}
 if(l<=0){if(p=='play'){snd('gong');trainMiss()}else if(p=='think'){snd('gong');trainReveal()}
