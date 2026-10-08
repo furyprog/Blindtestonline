@@ -73,7 +73,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.1.14';
+const VERSION='1.1.15';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -170,7 +170,7 @@ function dbInfoText(){return (LOADERR?'⚠️ '+e(LOADERR)+' · ':'')+DB.length+
 function dbInfoHtml(){return dbInfoText()+' <button class="g" style="padding:4px 8px;font-size:12px" onclick="checkUpdate()">🔄 Vérifier</button>'}
 function refreshDbInfo(){const el=$('dbInfo');if(el)el.innerHTML=dbInfoHtml()}
 function dbInfoBlock(){return '<p class="m" id="dbInfo">'+dbInfoHtml()+'</p>'}
-function checkUpdate(){baseDate().then(n=>{if(!n){alert('Impossible de vérifier pour le moment.');return}if(commitInfo&&n!==commitInfo)alert('⚠️ Une nouvelle version de la base est disponible (mise à jour le '+n+').\nRecharge la page pour l\'utiliser.');else{commitInfo=n;refreshDbInfo();alert('✅ Tu as bien la dernière version (mise à jour le '+n+').')}})}
+function checkUpdate(){retryTitres();baseDate().then(n=>{if(!n){alert('Impossible de vérifier pour le moment.');return}if(commitInfo&&n!==commitInfo)alert('⚠️ Une nouvelle version de la base est disponible (mise à jour le '+n+').\nRecharge la page pour l\'utiliser.');else{commitInfo=n;refreshDbInfo();alert('✅ Tu as bien la dernière version (mise à jour le '+n+').')}})}
 function home(){A.innerHTML=`<img class="logo" src="BuzzHit.png" alt="BuzzHit"><div class="card"><div class="row"><button class="p" onclick="hostMode(0)">🎙 Modérateur</button><button onclick="joinUI()">🙋 Joueur</button></div><div class="row" style="margin-top:10px"><button class="p new" onclick="hostMode(1)"><span style="white-space:nowrap">👥 Duo</span><br><span style="white-space:nowrap">(2 joueurs)</span></button><button onclick="trainStart()">🎧 Entraînement (solo)</button></div><div class="row" style="margin-top:10px"><button onclick="$('cj').hidden=false">❓ Comment jouer ?</button></div>${resumeBtn()}${dbInfoBlock()}</div>`;refreshDbInfo();if(hash())joinUI()}
 /* ================= HOST ================= */
 let LOADED=Promise.resolve(),mode=localStorage.getItem('bt_mode')||'api',peer,conns={},code,g,yt,ytReady=false,tm,maxD=20,yv='',tab='g',testing=false;
@@ -453,9 +453,12 @@ else if(S.reveal)m=`<div class="big">${e(S.reveal.a)} — ${e(S.reveal.t)}</div>
 A.innerHTML=`${W}<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="row" style="margin-bottom:12px"><button onclick="joinHome()">🏠 Accueil</button></div><div class="card"><div class="m">${e(me)}</div><div id="cd" class="cd"></div>${S.bo&&['play','judge','wait'].includes(S.phase)?'<div class="cd">⭐ BONUS : année ×2</div>':''}${m}</div><div class="card"><h3>Ordre des buzz</h3>${S.buzz.length?`<ul>${S.buzz.map((n,i)=>`<li class="${S.phase=='judge'&&i==S.active?'on':''}">${i+1}. ${e(n)}</li>`).join('')}</ul>`:'<p class="m">—</p>'}</div>
 <div class="card"><h3>🏆 Classement</h3>${podium(Object.entries(S.scores).sort((a,b)=>b[1]-a[1]))}${S.teams?teamRows(S.scores,S.ps,S.tm):Object.entries(S.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')}</div>
 ${dbInfoBlock()}`;refreshDbInfo();if(yk&&$('yin')){$('yin').value=yk.v;if(yk.f)$('yin').focus()}}
-LOADED=fetch('titres.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():Promise.reject(new Error('HTTP '+x.status))).then(L=>{const del=JSON.parse(localStorage.getItem('bt_del')||'[]');let n=0,maj=0;L.forEach(x=>{const v=x.vid||vid(x.url||'');if(!v||!x.artist||!x.title||!x.year)return;const id=x.id||v;if(del.includes(id))return;
+function loadTitres(){return fetch('titres.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():Promise.reject(new Error('HTTP '+x.status))).then(L=>{const del=JSON.parse(localStorage.getItem('bt_del')||'[]');let n=0,maj=0;L.forEach(x=>{const v=x.vid||vid(x.url||'');if(!v||!x.artist||!x.title||!x.year)return;const id=x.id||v;if(del.includes(id))return;
 const rec={id,vid:v,artist:x.artist,title:x.title,year:+x.year,genre:x.genre||'',langue:x.langue||'',verifie:x.verifie||'',vol:+x.vol||0,base:1};
-const existing=DB.find(d=>d.id==id||d.vid==v);if(existing){Object.assign(existing,rec);maj++}else{DB.push(rec);n++}});if(n||maj){save();if(peer&&tab=='b')hostUI()}LOADERR='';refreshDbInfo()}).catch(er=>{LOADERR=loadErrText(er);refreshDbInfo();setTimeout(()=>toast('⚠️ '+LOADERR),1500)});
+const existing=DB.find(d=>d.id==id||d.vid==v);if(existing){Object.assign(existing,rec);maj++}else{DB.push(rec);n++}});if(n||maj){save();if(peer&&tab=='b')hostUI()}LOADERR='';refreshDbInfo()}).catch(er=>{LOADERR=loadErrText(er);refreshDbInfo();setTimeout(()=>toast('⚠️ '+LOADERR),1500)})}
+LOADED=loadTitres();
+function retryTitres(){if(!LOADERR)return;LOADED=loadTitres();baseDate().then(d=>{if(d){commitInfo=d;refreshDbInfo()}}).catch(()=>{})}
+window.addEventListener('online',()=>setTimeout(retryTitres,1500));setInterval(()=>{if(LOADERR&&navigator.onLine!==false)retryTitres()},30000);
 home();
 
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
