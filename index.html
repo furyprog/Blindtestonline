@@ -73,7 +73,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.1.16';
+const VERSION='1.1.18';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -246,6 +246,7 @@ setTimeout(()=>{const n=$('bqn');if(n)n.textContent=q.length?(L.length+' résult
 return L.map(([t,i])=>`<div class="ld"><span>${vdot(t)}${e(t.artist)} — ${e(t.title)} (${t.year})${t.genre||t.langue?` <span class="m">· ${e([t.genre,t.langue].filter(Boolean).join(' · '))}</span>`:''}</span><span><button class="g" onclick="pick(${i})">▶</button> <button class="g" onclick="editTrack(${i})">✎</button> <button class="g" onclick="del(${i})">✕</button></span></div>`).join('')||(q.length?'<p class="m">Aucun titre ne correspond à cette recherche.</p>':'<p class="m">Base vide.</p>')}
 function bSearch(v){BQ=v;const l=$('blist');if(l)l.innerHTML=baseListHTML()}
 function findDup(v,a,t,skip){const na=nrmT(a),nt=nrmT(t);for(let k=0;k<DB.length;k++){if(k===skip)continue;const d=DB[k];if(d.vid==v||d.id==v)return{kind:'lien',t:d};if(na&&nt&&nrmT(d.artist)==na&&nrmT(d.title)==nt)return{kind:'titre',t:d}}return null}
+['input','change'].forEach(ev=>document.addEventListener(ev,x=>{const el=x.target;if(!el||!['fu','fa','ft','fy','fg','fl'].includes(el.id))return;el.style.borderColor='';const m=$('fm');if(m&&!['fu','fa','ft','fy','fg','fl'].some(i=>$(i)&&$(i).style.borderColor))m.textContent=''}));
 function add(){const v=vid($('fu').value),a=$('fa').value.trim(),t=$('ft').value.trim(),y=+$('fy').value,gg=$('fg').value,l=$('fl').value.trim();const ck=[['fu',v,$('fu').value.trim()?'Lien YouTube non reconnu':'Lien YouTube manquant'],['fa',a,'Artiste manquant'],['ft',t,'Titre manquant'],['fy',y>=1900&&y<=2100,$('fy').value.trim()?'Année invalide (entre 1900 et 2100)':'Année manquante'],['fg',gg,'Genre non choisi'],['fl',l,'Langue non choisie']];
 ck.forEach(x=>$(x[0]).style.borderColor='');const pb=ck.filter(x=>!x[1]);
 if(pb.length){pb.forEach(x=>$(x[0]).style.borderColor='#ff4d6d');$('fm').textContent='⚠️ À corriger : '+pb.map(x=>x[2]).join(' · ');$(pb[0][0]).focus();return}
@@ -280,7 +281,9 @@ function mk(t,pos,cb,direct){rmIframe();if(BL)window.removeEventListener('blur',
 /* lecteur intégré officiel de YouTube (confidentialité renforcée) : chargé tout de suite mais en pause, il ne démarre qu'au toucher du carré noir (sauf réécoute : direct) */
 f.src='https://www.youtube-nocookie.com/embed/'+t.vid+'?playsinline=1&controls=0&fs=0&disablekb=1&rel=0&iv_load_policy=3&modestbranding=1'+(pos>1?'&start='+Math.floor(pos):'')+'&enablejsapi=1'+(direct?'&autoplay=1':'');
 const lo=document.createElement('div');lo.id='lo';lo.textContent='⏳ Chargement…';
-YS=0;g&&(g.pf=false);TR.pf=false;maskRefresh();f.onload=()=>{const l=$('lo');if(l)l.remove();try{f.contentWindow.postMessage(JSON.stringify({event:'listening',id:1,channel:'widget'}),'*')}catch(_){}};
+YS=0;YG=false;g&&(g.pf=false);TR.pf=false;maskRefresh();try{window.focus()}catch(_){}
+const hs=()=>{try{f.contentWindow.postMessage(JSON.stringify({event:'listening',id:1,channel:'widget'}),'*')}catch(_){}};let hn_=0;const hiv=setInterval(()=>{if($('sf')!==f||YG||++hn_>20){clearInterval(hiv);return}hs()},500);
+f.onload=()=>{const l=$('lo');if(l)l.remove();hs()};
 /* petit délai : laisse au clic le temps d'arriver jusqu'au lecteur avant que l'affichage ne change (sinon Firefox perd le clic) */
 BL=()=>setTimeout(()=>{if(document.activeElement===f)cb()},350);window.addEventListener('blur',BL);
 $('ytw').appendChild(f);$('ytw').appendChild(lo)}
@@ -352,8 +355,9 @@ if(k=='y'&&!g.j.y&&yv){const d=Math.abs(+yv-g.cur.year);s((d==0?2:d<=SET.yd?1:0)
 function nxt(){if(g.active+1<g.buzz.length){g.active++;g.j={};g.msg='🎤 Au tour de '+g.buzz[g.active];startAns()}else{g.phase='done';g.tEnd=0}upd()}
 function rev(){if(g.phase=='over')return;g.seen=false;const t=g.cur;g.reveal={a:t.artist,t:t.title,y:t.year};g.phase='done';g.tEnd=0;g.tk='';if(checkWin())return;arm()}
 function bz(){return g.buzz.length?`<ul>${g.buzz.map((n,i)=>`<li class="${g.phase=='judge'&&i==g.active?'on':''}">${i+1}. ${e(n)}${SET.teams&&g.tm&&g.tm[n]?' · '+g.tm[n]:''}</li>`).join('')}</ul>`:'<p class="m">Aucun buzz.</p>'}
-let YS=0;
+let YS=0,YG=false;
 window.addEventListener('message',e=>{if(!/youtube(-nocookie)?\.com$/.test((e.origin||'').replace(/^https?:\/\//,'')))return;let d=e.data;try{if(typeof d=='string')d=JSON.parse(d)}catch(_){return}
+try{const f0=$('sf');if(f0&&e.source===f0.contentWindow)YG=true}catch(_){}
 let st=null;if(d&&d.event=='onStateChange')st=d.info;else if(d&&d.event=='infoDelivery'&&d.info&&typeof d.info.playerState=='number')st=d.info.playerState;
 if(st===null||st===YS)return;YS=st;
 if(st==1){try{const f=$('sf');if(f&&e.source===f.contentWindow){if(typeof TR!='undefined'&&TR.on){if(TR.phase=='ready')trainGo()}else if(g){if(g.phase=='ready')go();else if(g.phase=='wait')resume()}}}catch(_){}}
