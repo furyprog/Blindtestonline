@@ -73,7 +73,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.1.15';
+const VERSION='1.1.16';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -209,7 +209,7 @@ ${filtHTML()}
 <div class="card"><div class="row"><button onclick="exp()">⬇️ Exporter</button><label><button onclick="$('imp').click()" style="width:100%">⬆️ Importer</button></label></div><input id="imp" type="file" accept=".json" hidden onchange="imp(this)">
 <p class="m" style="margin-top:8px">${delCount()} titre(s) supprimé(s) localement sur cet appareil. <button class="g" onclick="resetDevice()">↺ Réinitialiser cet appareil</button></p></div>
 <div class="card"><h3>🚩 Signalements (${reports().length})</h3>${reports().length?reports().map(r=>`<div class="ld"><span>${e(r.artist)} — ${e(r.title)}<br><span class="m">${new Date(r.ts).toLocaleString('fr-FR')}${r.reason?' · '+e(r.reason):''}${r.sent?' · ✓ envoyé':''}</span></span></div>`).join('')+'<div class="row" style="margin-top:8px"><button class="g" onclick="exportReports()">⬇️ Exporter</button><button class="g" onclick="clearReports()">Effacer</button></div>':'<p class="m">Aucun signalement.</p>'}</div>
-<div class="card"><div class="row" style="align-items:center;margin-bottom:8px"><label class="m" style="flex:none">Trier par</label><select onchange="setSort(this.value)">${[['ajout','Ordre de la base'],['artiste','Artiste (A → Z)'],['titre','Titre (A → Z)'],['annee','Année (croissante)'],['annee-d','Année (décroissante)'],['genre','Genre'],['langue','Langue'],['statut','Ajoutés sur cet appareil (en premier)']].map(x=>`<option value="${x[0]}" ${SORT==x[0]?'selected':''}>${x[1]}</option>`).join('')}</select></div>${sortedDB().map(([t,i])=>`<div class="ld"><span>${vdot(t)}${e(t.artist)} — ${e(t.title)} (${t.year})${t.genre||t.langue?` <span class="m">· ${e([t.genre,t.langue].filter(Boolean).join(' · '))}</span>`:''}</span><span><button class="g" onclick="pick(${i})">▶</button> <button class="g" onclick="editTrack(${i})">✎</button> <button class="g" onclick="del(${i})">✕</button></span></div>`).join('')||'<p class="m">Base vide.</p>'}</div>`);if(tab=='g'){upd();if(g.phase=='ready')arm(g.next);else if(g.phase=='wait')mk(g.cur,g.pos,resume)}
+<div class="card"><div class="row" style="align-items:center;margin-bottom:8px"><label class="m" style="flex:none">Trier par</label><select onchange="setSort(this.value)">${[['ajout','Ordre de la base'],['artiste','Artiste (A → Z)'],['titre','Titre (A → Z)'],['annee','Année (croissante)'],['annee-d','Année (décroissante)'],['genre','Genre'],['langue','Langue'],['statut','Ajoutés sur cet appareil (en premier)']].map(x=>`<option value="${x[0]}" ${SORT==x[0]?'selected':''}>${x[1]}</option>`).join('')}</select></div><input id="bq" type="search" placeholder="🔎 Rechercher un titre ou un artiste" value="${e(BQ)}" oninput="bSearch(this.value)" autocomplete="off" style="margin-bottom:8px"><p class="m" id="bqn"></p><div id="blist">${baseListHTML()}</div></div>`);if(tab=='g'){upd();if(g.phase=='ready')arm(g.next);else if(g.phase=='wait')mk(g.cur,g.pos,resume)}
 if(tab=='b'&&editIdx>-1){$('fu').value='https://www.youtube.com/watch?v='+DB[editIdx].vid;$('fa').value=DB[editIdx].artist;$('ft').value=DB[editIdx].title;$('fy').value=DB[editIdx].year;$('fg').value=DB[editIdx].genre||'';$('fl').value=DB[editIdx].langue?langNorm(DB[editIdx].langue):''}}
 function delCount(){return JSON.parse(localStorage.getItem('bt_del')||'[]').length}
 function reports(){return JSON.parse(localStorage.getItem('bt_reports')||'[]')}
@@ -238,13 +238,27 @@ function sortedDB(){const a=DB.map((t,i)=>[t,i]),c=(x,y)=>String(x||'').localeCo
 const f={artiste:ar,titre:(x,y)=>c(x[0].title,y[0].title)||c(x[0].artist,y[0].artist),annee:(x,y)=>x[0].year-y[0].year||ar(x,y),'annee-d':(x,y)=>y[0].year-x[0].year||ar(x,y),genre:(x,y)=>c(x[0].genre,y[0].genre)||ar(x,y),langue:(x,y)=>c(x[0].langue,y[0].langue)||ar(x,y),statut:(x,y)=>st(x[0])-st(y[0])||ar(x,y)}[SORT];return f?a.sort(f):a}
 function editTrack(i){editIdx=i;hostUI()}
 function cancelEdit(){editIdx=-1;hostUI()}
+let BQ='';
+const nrm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+const nrmT=x=>nrm(String(x||'').replace(/[\(\[][^\)\]]*[\)\]]/g,' '));
+function baseListHTML(){const q=nrm(BQ).split(' ').filter(Boolean),all=sortedDB(),L=q.length?all.filter(([t])=>{const h=nrm(t.artist+' '+t.title);return q.every(w=>h.includes(w))}):all;
+setTimeout(()=>{const n=$('bqn');if(n)n.textContent=q.length?(L.length+' résultat(s) sur '+all.length+' titres'):all.length+' titres dans la base'},0);
+return L.map(([t,i])=>`<div class="ld"><span>${vdot(t)}${e(t.artist)} — ${e(t.title)} (${t.year})${t.genre||t.langue?` <span class="m">· ${e([t.genre,t.langue].filter(Boolean).join(' · '))}</span>`:''}</span><span><button class="g" onclick="pick(${i})">▶</button> <button class="g" onclick="editTrack(${i})">✎</button> <button class="g" onclick="del(${i})">✕</button></span></div>`).join('')||(q.length?'<p class="m">Aucun titre ne correspond à cette recherche.</p>':'<p class="m">Base vide.</p>')}
+function bSearch(v){BQ=v;const l=$('blist');if(l)l.innerHTML=baseListHTML()}
+function findDup(v,a,t,skip){const na=nrmT(a),nt=nrmT(t);for(let k=0;k<DB.length;k++){if(k===skip)continue;const d=DB[k];if(d.vid==v||d.id==v)return{kind:'lien',t:d};if(na&&nt&&nrmT(d.artist)==na&&nrmT(d.title)==nt)return{kind:'titre',t:d}}return null}
 function add(){const v=vid($('fu').value),a=$('fa').value.trim(),t=$('ft').value.trim(),y=+$('fy').value,gg=$('fg').value,l=$('fl').value.trim();const ck=[['fu',v,$('fu').value.trim()?'Lien YouTube non reconnu':'Lien YouTube manquant'],['fa',a,'Artiste manquant'],['ft',t,'Titre manquant'],['fy',y>=1900&&y<=2100,$('fy').value.trim()?'Année invalide (entre 1900 et 2100)':'Année manquante'],['fg',gg,'Genre non choisi'],['fl',l,'Langue non choisie']];
 ck.forEach(x=>$(x[0]).style.borderColor='');const pb=ck.filter(x=>!x[1]);
 if(pb.length){pb.forEach(x=>$(x[0]).style.borderColor='#ff4d6d');$('fm').textContent='⚠️ À corriger : '+pb.map(x=>x[2]).join(' · ');$(pb[0][0]).focus();return}
-if(editIdx>-1){const tr=DB[editIdx];tr.vid=v;tr.artist=a;tr.title=t;tr.year=y;tr.genre=gg;tr.langue=l;editIdx=-1;save();hostUI();return}
-if(DB.some(d=>d.id==v)){$('fm').textContent='Ce titre est déjà dans la base.';return}const nt={id:v,vid:v,artist:a,title:t,year:y,genre:gg,langue:l};DB.push(nt);save();propose(nt);hostUI();toast("📨 Titre ajouté et proposé à l'administrateur")}
+const dp=findDup(v,a,t,editIdx);
+const dn=d=>d.artist+' — '+d.title+' ('+d.year+')';
+if(editIdx>-1){const doEdit=()=>{const tr=DB[editIdx];tr.vid=v;tr.artist=a;tr.title=t;tr.year=y;tr.genre=gg;tr.langue=l;editIdx=-1;save();hostUI()};
+if(dp&&dp.kind=='lien'){$('fm').textContent='⚠️ Ce lien YouTube est déjà utilisé par : '+dn(dp.t);return}
+if(dp){askConfirm('Un titre identique existe déjà dans la base : '+dn(dp.t)+'. Enregistrer quand même ?',doEdit);return}doEdit();return}
+const doAdd=()=>{const nt={id:v,vid:v,artist:a,title:t,year:y,genre:gg,langue:l};DB.push(nt);save();propose(nt);hostUI();toast("📨 Titre ajouté et proposé à l'administrateur")};
+if(dp&&dp.kind=='lien'){$('fm').textContent='⚠️ Ce lien YouTube est déjà dans la base : '+dn(dp.t);$('fu').style.borderColor='#ff4d6d';return}
+if(dp){askConfirm('Ce titre semble déjà exister dans la base : '+dn(dp.t)+'. L\'ajouter quand même ?',doAdd);return}doAdd()}
 function del(i){if(i===editIdx)editIdx=-1;const t=DB.splice(i,1)[0],d=JSON.parse(localStorage.getItem('bt_del')||'[]');d.push(t.id);localStorage.setItem('bt_del',JSON.stringify(d));save();hostUI()}
-function bulk(){let n=0,bad=0;$('bl').value.split('\n').forEach(l=>{if(!l.trim())return;const q=l.split(/[;\t|]/).map(x=>x.trim()),v=vid(q[0]||''),y=+q[3];if(!v||!q[1]||!q[2]||!y||!q[4]||!q[5]){bad++;return}if(DB.some(d=>d.id==v))return;DB.push({id:v,vid:v,artist:q[1],title:q[2],year:y,genre:q[4],langue:q[5]});n++});save();hostUI();$('bm').textContent=n+' ajouté(s)'+(bad?', '+bad+' ligne(s) ignorée(s)':'')}
+function bulk(){let n=0,bad=0,dup=0;$('bl').value.split('\n').forEach(l=>{if(!l.trim())return;const q=l.split(/[;\t|]/).map(x=>x.trim()),v=vid(q[0]||''),y=+q[3];if(!v||!q[1]||!q[2]||!y||!q[4]||!q[5]){bad++;return}if(findDup(v,q[1],q[2],-1)){dup++;return}DB.push({id:v,vid:v,artist:q[1],title:q[2],year:y,genre:q[4],langue:q[5]});n++});save();hostUI();$('bm').textContent=n+' ajouté(s)'+(dup?', '+dup+' doublon(s) ignoré(s)':'')+(bad?', '+bad+' ligne(s) ignorée(s)':'')}
 function exp(){const b=new Blob([JSON.stringify(DB)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='buzzhit-base.json';a.click()}
 function imp(i){const f=i.files[0];if(!f)return;f.text().then(x=>{try{DB=DB.concat(JSON.parse(x).filter(t=>t.vid&&!DB.some(d=>d.id==t.id)));save();hostUI()}catch(_){alert('Fichier invalide')}})}
 /* lecture : le carré noir est le bouton de lancement */
