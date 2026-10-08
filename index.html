@@ -73,7 +73,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.1.18';
+const VERSION='1.1.19';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -115,13 +115,24 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='
 let SECRET=localStorage.getItem('bt_pl')==='1',lt=[];
 function logoTap(){const n=Date.now();lt=lt.filter(x=>n-x<3000);lt.push(n);if(lt.length>=7){lt=[];SECRET=!SECRET;localStorage.setItem('bt_pl',SECRET?'1':'0');toast(SECRET?'🎶 Mode playlist débloqué':'🎶 Mode playlist masqué');if(!SECRET&&!$('pl').hidden)plStop();hostUI()}}
 function plStart(){if(!SECRET)return;if(['play','judge','wait'].includes(g.phase)){alert("Termine la manche en cours avant de lancer la playlist.");return}
-const b=DB.filter(matches);if(!b.length){alert('Aucun titre ne correspond aux filtres.');return}
-plq=b.slice().sort(()=>Math.random()-.5);pli=-1;rmIframe();clearTimeout(tm);
+const sv=plLoad();if(sv){const m=Math.floor(sv.t/60),sc=String(sv.t%60).padStart(2,'0');
+$('ovno').textContent='Nouvelle liste';$('ovyes').textContent='Reprendre';
+const rst=()=>{$('ovno').textContent='Annuler';$('ovyes').textContent='OK';$('ovno').onclick=()=>{$('ov').hidden=true}};
+askConfirm('Reprendre la playlist là où tu t\'étais arrêté : '+sv.tr.artist+' — '+sv.tr.title+' à '+m+':'+sc+' ?',()=>{rst();plBegin(sv)});
+$('ovno').onclick=()=>{$('ov').hidden=true;rst();plBegin(null)};return}
+plBegin(null)}
+const PLK='bt_plstate';let plAt=0;
+function plLoad(){try{const o=JSON.parse(localStorage.getItem(PLK)||'null');if(!o||!o.q||Date.now()-o.ts>43200000)return null;const q=o.q.map(v=>DB.find(d=>d.vid==v)).filter(Boolean),tr=DB.find(d=>d.vid==o.vid);if(!tr||!q.length)return null;return{q,tr,t:Math.max(0,Math.floor(o.t||0)),raw:o}}catch(_){return null}}
+function plSave(t0){try{const c=plq[pli];if(!c)return;let t=t0;if(t==null){if(!ytp||!ytp.getCurrentTime)return;if(ytp.getVideoData&&ytp.getVideoData().video_id!=c.vid)return;t=ytp.getCurrentTime()}localStorage.setItem(PLK,JSON.stringify({q:plq.map(x=>x.vid),vid:c.vid,t:Math.floor(t),ts:Date.now()}))}catch(_){}}
+setInterval(()=>{if(ytp&&!$('pl').hidden)plSave()},4000);
+addEventListener('pagehide',()=>{if(ytp&&!$('pl').hidden)plSave()});document.addEventListener('visibilitychange',()=>{if(document.hidden&&ytp&&!$('pl').hidden)plSave()});
+function plBegin(sv){let b=null;if(sv){plq=sv.q.slice();pli=Math.max(0,plq.findIndex(x=>x.vid==sv.tr.vid))-1;plAt=Math.max(0,sv.t-2)}else{b=DB.filter(matches);if(!b.length){alert('Aucun titre ne correspond aux filtres.');return}plq=b.slice().sort(()=>Math.random()-.5);pli=-1;plAt=0}
+rmIframe();clearTimeout(tm);
 $('pl').innerHTML='<div class="box" style="max-width:420px;width:100%"><h3>🎶 Playlist aléatoire</h3><div id="plp"><div id="plyt"></div></div><div id="pln" class="big" style="margin:10px 0"></div><div class="m" id="plc"></div><p class="m" id="plwl" style="margin-top:8px"></p><div class="row" style="margin-top:10px"><button onclick="plTog()">⏯</button><button class="p" onclick="plNext()">⏭ Suivant</button><button class="g" onclick="plReport()">🚩 Signaler</button><button class="d" onclick="plStop()">✕ Quitter</button></div></div>';$('pl').hidden=false;wl(true);$('plwl').textContent='wakeLock' in navigator?"🔆 L'écran reste allumé tant que la playlist est ouverte. Ne verrouille pas le téléphone avec le bouton.":"⚠️ Ce navigateur ne peut pas garder l'écran allumé : désactive la mise en veille automatique.";
 if(window.YT&&YT.Player)plNext();else{window.onYouTubeIframeAPIReady=()=>plNext();const sc=document.createElement('script');sc.src='https://www.youtube.com/iframe_api';document.head.appendChild(sc)}}
-function plNext(){pli++;if(pli>=plq.length){plq.sort(()=>Math.random()-.5);pli=0}const t=plq[pli];$('pln').innerHTML=vdot(t,1)+e(t.artist)+' — '+e(t.title)+' ('+t.year+')';$('plc').textContent=(pli+1)+' / '+plq.length;
-if(ytp){ytp.loadVideoById(t.vid);try{ytp.setVolume(t.vol||100)}catch(_){}return}
-ytp=new YT.Player('plyt',{width:'100%',height:200,videoId:t.vid,playerVars:{autoplay:1,playsinline:1},events:{onReady:ev=>{try{ev.target.setVolume(t.vol||100)}catch(_){}ev.target.playVideo()},onStateChange:ev=>{if(ev.data===1){try{ev.target.setVolume((plq[pli]||{}).vol||100)}catch(_){}}if(ev.data===0)plNext()},onError:ev=>{try{addReport('Lecture impossible : erreur du lecteur '+ev.data,plq[pli])}catch(_){}setTimeout(plNext,800)}}})}
+function plNext(){pli++;if(pli>=plq.length){plq.sort(()=>Math.random()-.5);pli=0}const t=plq[pli],st0=plAt;plAt=0;plSave(st0);$('pln').innerHTML=vdot(t,1)+e(t.artist)+' — '+e(t.title)+' ('+t.year+')';$('plc').textContent=(pli+1)+' / '+plq.length;
+if(ytp){ytp.loadVideoById({videoId:t.vid,startSeconds:st0});try{ytp.setVolume(t.vol||100)}catch(_){}return}
+ytp=new YT.Player('plyt',{width:'100%',height:200,videoId:t.vid,playerVars:{autoplay:1,playsinline:1,start:st0},events:{onReady:ev=>{try{ev.target.setVolume(t.vol||100)}catch(_){}ev.target.playVideo()},onStateChange:ev=>{if(ev.data===1){try{ev.target.setVolume((plq[pli]||{}).vol||100)}catch(_){}}if(ev.data===0)plNext()},onError:ev=>{try{addReport('Lecture impossible : erreur du lecteur '+ev.data,plq[pli])}catch(_){}setTimeout(plNext,800)}}})}
 function plReport(){const t=plq[pli];if(!t)return;askPrompt('Titre : '+t.artist+' — '+t.title+'\nDécris le problème (lien mort, mauvais titre, etc.) :',v=>{addReport(v||'(sans description)',t);toast('🚩 Signalement enregistré')},'text')}
 const FB='https://docs.google.com/forms/d/e/1FAIpQLSc8hEuq8kvXvOQ4-JD5Ar3m5r6H9Ru4f2PlWB15hXC3YKUmhg/formResponse';
 function fbInfos(){return [new Date().toLocaleString('fr-FR'),navigator.userAgent.slice(0,120),screen.width+'x'+screen.height,'phase='+(typeof g!='undefined'&&g?g.phase:'-'),'équipes='+SET.teams,'joueurs='+Object.keys(conns).length,'titres='+DB.length,'PWA='+(matchMedia('(display-mode: standalone)').matches?'oui':'non'),'V'+VERSION].join(' | ')}
@@ -137,7 +148,7 @@ function propose(t){const l=JSON.parse(localStorage.getItem('bt_props')||'[]');i
 function sendProps(){const l=JSON.parse(localStorage.getItem('bt_props')||'[]');l.filter(x=>!x.sent).forEach(x=>{fetch(PF,{method:'POST',mode:'no-cors',body:new URLSearchParams({'entry.1849119998':x.lien,'entry.883309421':x.artiste,'entry.910802051':x.titre,'entry.1460548180':String(x.annee),'entry.1001517602':x.genre,'entry.890844371':x.langue,'entry.1783437599':x.infos})}).then(()=>{x.sent=1;localStorage.setItem('bt_props',JSON.stringify(l))}).catch(()=>{})})}
 setTimeout(sendProps,5000);addEventListener('online',sendProps);
 function plTog(){if(!ytp)return;ytp.getPlayerState()===1?ytp.pauseVideo():ytp.playVideo()}
-function plStop(){wl(false);try{ytp&&ytp.destroy()}catch(_){}ytp=null;$('pl').hidden=true;$('pl').innerHTML=''}
+function plStop(){try{localStorage.removeItem(PLK)}catch(_){}wl(false);try{ytp&&ytp.destroy()}catch(_){}ytp=null;$('pl').hidden=true;$('pl').innerHTML=''}
 const GENRES=['Rock & Alternatif / Metal','Pop','Rap / Hip-Hop','Électronique / Dance','Soul / R&B / Funk','B.O. Films / Séries','Comédies musicales','Dessins animés','Variété / Chanson','Folk / Country','Reggae / Dancehall'];
 let filt=JSON.parse(localStorage.getItem('bt_filt')||'{"genres":[],"langues":[],"yMin":"","yMax":""}');
 const saveFilt=()=>localStorage.setItem('bt_filt',JSON.stringify(filt));filt.genres=filt.genres.filter(x=>GENRES.includes(x));
