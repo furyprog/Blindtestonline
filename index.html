@@ -73,7 +73,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.1.13';
+const VERSION='1.1.14';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -160,7 +160,13 @@ function baseDate(){const f=d=>d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTi
 return fetch('https://api.github.com/repos/furyprog/Blindtestonline/commits?path=titres.json&per_page=1').then(r=>r.ok?r.json():Promise.reject()).then(a=>f(new Date(a[0].commit.committer.date))).catch(()=>fetch('titres.json',{method:'HEAD',cache:'no-store'}).then(r=>{const h=r.headers.get('Last-Modified');return h?f(new Date(h)):''}).catch(()=>''))}
 baseDate().then(d=>{if(d){commitInfo=d;refreshDbInfo()}});
 let LOADERR='';
-function dbInfoText(){return (LOADERR?'⚠️ titres.json illisible ('+e(LOADERR)+') · ':'')+DB.length+' titres'+(commitInfo?' · base mise à jour le '+commitInfo:' · date de mise à jour indisponible')}
+function loadErrText(er){const m=String(er&&er.message||er),h=m.match(/HTTP (\d+)/);
+if(navigator.onLine===false)return "Pas de connexion Internet : la liste des titres n'a pas pu être mise à jour. Les titres déjà enregistrés sur cet appareil restent utilisables";
+if(h)return "Le serveur a répondu par une erreur ("+h[1]+") : la liste des titres n'a pas pu être mise à jour";
+if(/Failed to fetch|NetworkError|Load failed/i.test(m))return "Connexion Internet absente ou instable : la liste des titres n'a pas pu être mise à jour";
+if(/Unexpected token|not valid JSON|<!DOCTYPE/i.test(m))return "Le serveur a renvoyé une page au lieu de la liste des titres : vérifie ta connexion Internet puis actualise avec 🔄";
+return "La liste des titres n'a pas pu être lue ("+m+")"}
+function dbInfoText(){return (LOADERR?'⚠️ '+e(LOADERR)+' · ':'')+DB.length+' titres'+(commitInfo?' · base mise à jour le '+commitInfo:' · date de mise à jour indisponible')}
 function dbInfoHtml(){return dbInfoText()+' <button class="g" style="padding:4px 8px;font-size:12px" onclick="checkUpdate()">🔄 Vérifier</button>'}
 function refreshDbInfo(){const el=$('dbInfo');if(el)el.innerHTML=dbInfoHtml()}
 function dbInfoBlock(){return '<p class="m" id="dbInfo">'+dbInfoHtml()+'</p>'}
@@ -449,7 +455,7 @@ A.innerHTML=`${W}<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class
 ${dbInfoBlock()}`;refreshDbInfo();if(yk&&$('yin')){$('yin').value=yk.v;if(yk.f)$('yin').focus()}}
 LOADED=fetch('titres.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():Promise.reject(new Error('HTTP '+x.status))).then(L=>{const del=JSON.parse(localStorage.getItem('bt_del')||'[]');let n=0,maj=0;L.forEach(x=>{const v=x.vid||vid(x.url||'');if(!v||!x.artist||!x.title||!x.year)return;const id=x.id||v;if(del.includes(id))return;
 const rec={id,vid:v,artist:x.artist,title:x.title,year:+x.year,genre:x.genre||'',langue:x.langue||'',verifie:x.verifie||'',vol:+x.vol||0,base:1};
-const existing=DB.find(d=>d.id==id||d.vid==v);if(existing){Object.assign(existing,rec);maj++}else{DB.push(rec);n++}});if(n||maj){save();if(peer&&tab=='b')hostUI()}LOADERR='';refreshDbInfo()}).catch(er=>{LOADERR=String(er&&er.message||er);refreshDbInfo();setTimeout(()=>toast('⚠️ titres.json illisible : la base n\'a pas pu être mise à jour'),1500)});
+const existing=DB.find(d=>d.id==id||d.vid==v);if(existing){Object.assign(existing,rec);maj++}else{DB.push(rec);n++}});if(n||maj){save();if(peer&&tab=='b')hostUI()}LOADERR='';refreshDbInfo()}).catch(er=>{LOADERR=loadErrText(er);refreshDbInfo();setTimeout(()=>toast('⚠️ '+LOADERR),1500)});
 home();
 
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
