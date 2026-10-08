@@ -73,7 +73,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.1.19';
+const VERSION='1.1.20';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -113,8 +113,8 @@ let plq=[],pli=-1,ytp=null,WL=null,wlOn=false,keepAwake=false;
 async function wl(on){wlOn=on||keepAwake;try{if(wlOn&&'wakeLock' in navigator&&!WL){WL=await navigator.wakeLock.request('screen');WL.addEventListener('release',()=>{WL=null})}else if(!wlOn&&WL){await WL.release();WL=null}}catch(_){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible'&&wlOn&&!WL)wl(true)});
 let SECRET=localStorage.getItem('bt_pl')==='1',lt=[];
-function logoTap(){const n=Date.now();lt=lt.filter(x=>n-x<3000);lt.push(n);if(lt.length>=7){lt=[];SECRET=!SECRET;localStorage.setItem('bt_pl',SECRET?'1':'0');toast(SECRET?'🎶 Mode playlist débloqué':'🎶 Mode playlist masqué');if(!SECRET&&!$('pl').hidden)plStop();hostUI()}}
-function plStart(){if(!SECRET)return;if(['play','judge','wait'].includes(g.phase)){alert("Termine la manche en cours avant de lancer la playlist.");return}
+function logoTap(){const n=Date.now();lt=lt.filter(x=>n-x<3000);lt.push(n);if(lt.length>=7){lt=[];SECRET=!SECRET;localStorage.setItem('bt_pl',SECRET?'1':'0');toast(SECRET?'🎶 Mode playlist débloqué':'🎶 Mode playlist masqué');if(!SECRET&&!$('pl').hidden)plStop();if($('hm'))home();else if(g&&code)hostUI()}}
+function plStart(){if(!SECRET)return;if(g&&['play','judge','wait'].includes(g.phase)){alert("Termine la manche en cours avant de lancer la playlist.");return}
 const sv=plLoad();if(sv){const m=Math.floor(sv.t/60),sc=String(sv.t%60).padStart(2,'0');
 $('ovno').textContent='Nouvelle liste';$('ovyes').textContent='Reprendre';
 const rst=()=>{$('ovno').textContent='Annuler';$('ovyes').textContent='OK';$('ovno').onclick=()=>{$('ov').hidden=true}};
@@ -182,7 +182,7 @@ function dbInfoHtml(){return dbInfoText()+' <button class="g" style="padding:4px
 function refreshDbInfo(){const el=$('dbInfo');if(el)el.innerHTML=dbInfoHtml()}
 function dbInfoBlock(){return '<p class="m" id="dbInfo">'+dbInfoHtml()+'</p>'}
 function checkUpdate(){retryTitres();baseDate().then(n=>{if(!n){alert('Impossible de vérifier pour le moment.');return}if(commitInfo&&n!==commitInfo)alert('⚠️ Une nouvelle version de la base est disponible (mise à jour le '+n+').\nRecharge la page pour l\'utiliser.');else{commitInfo=n;refreshDbInfo();alert('✅ Tu as bien la dernière version (mise à jour le '+n+').')}})}
-function home(){A.innerHTML=`<img class="logo" src="BuzzHit.png" alt="BuzzHit"><div class="card"><div class="row"><button class="p" onclick="hostMode(0)">🎙 Modérateur</button><button onclick="joinUI()">🙋 Joueur</button></div><div class="row" style="margin-top:10px"><button class="p new" onclick="hostMode(1)"><span style="white-space:nowrap">👥 Duo</span><br><span style="white-space:nowrap">(2 joueurs)</span></button><button onclick="trainStart()">🎧 Entraînement (solo)</button></div><div class="row" style="margin-top:10px"><button onclick="$('cj').hidden=false">❓ Comment jouer ?</button></div>${resumeBtn()}${dbInfoBlock()}</div>`;refreshDbInfo();if(hash())joinUI()}
+function home(){A.innerHTML=`<img class="logo" src="BuzzHit.png" alt="BuzzHit" onclick="logoTap()"><div class="card" id="hm"><div class="row"><button class="p" onclick="hostMode(0)">🎙 Modérateur</button><button onclick="joinUI()">🙋 Joueur</button></div><div class="row" style="margin-top:10px"><button class="p new" onclick="hostMode(1)"><span style="white-space:nowrap">👥 Duo</span><br><span style="white-space:nowrap">(2 joueurs)</span></button><button onclick="trainStart()">🎧 Entraînement (solo)</button></div><div class="row" style="margin-top:10px"><button onclick="$('cj').hidden=false">❓ Comment jouer ?</button></div>${SECRET?`<div class="row" style="margin-top:10px"><button onclick="plStart()">🎶 Playlist</button></div>`:''}${resumeBtn()}${dbInfoBlock()}</div>`;refreshDbInfo();if(hash())joinUI()}
 /* ================= HOST ================= */
 let LOADED=Promise.resolve(),mode=localStorage.getItem('bt_mode')||'api',peer,conns={},code,g,yt,ytReady=false,tm,maxD=20,yv='',tab='g',testing=false;
 function onYouTubeIframeAPIReady(){ytReady=true}
