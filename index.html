@@ -73,7 +73,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.1.12';
+const VERSION='1.1.13';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -335,7 +335,9 @@ function bz(){return g.buzz.length?`<ul>${g.buzz.map((n,i)=>`<li class="${g.phas
 let YS=0;
 window.addEventListener('message',e=>{if(!/youtube(-nocookie)?\.com$/.test((e.origin||'').replace(/^https?:\/\//,'')))return;let d=e.data;try{if(typeof d=='string')d=JSON.parse(d)}catch(_){return}
 let st=null;if(d&&d.event=='onStateChange')st=d.info;else if(d&&d.event=='infoDelivery'&&d.info&&typeof d.info.playerState=='number')st=d.info.playerState;
-if(st===null||st===YS)return;YS=st;musClock(st);maskRefresh()});
+if(st===null||st===YS)return;YS=st;
+if(st==1){try{const f=$('sf');if(f&&e.source===f.contentWindow){if(typeof TR!='undefined'&&TR.on){if(TR.phase=='ready')trainGo()}else if(g){if(g.phase=='ready')go();else if(g.phase=='wait')resume()}}}catch(_){}}
+musClock(st);maskRefresh()});
 function musClock(st){try{const n=Date.now();
 if(typeof TR!='undefined'&&TR.on){if(TR.phase!='play')return;if(st==2&&!TR.pf){TR.rem=Math.max(0,TR.end-n);TR.pf=true}else if(st==1&&TR.pf){TR.pf=false;TR.end=n+TR.rem}return}
 if(!g||g.phase!='play'||g.tk!='mus')return;
