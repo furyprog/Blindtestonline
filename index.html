@@ -73,7 +73,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.2.0';
+const VERSION='1.2.1';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -266,7 +266,7 @@ function collapseAll(){Object.keys(OPEN).forEach(k=>OPEN[k]=false);localStorage.
 const tgl=(k,el)=>{OPEN[k]=el.open;localStorage.setItem('bt_open',JSON.stringify(OPEN))};
 function sortedDB(){const a=DB.map((t,i)=>[t,i]),c=(x,y)=>String(x||'').localeCompare(String(y||''),'fr',{sensitivity:'base'}),ar=(x,y)=>c(x[0].artist,y[0].artist)||c(x[0].title,y[0].title),st=t=>!t.base?0:1;
 const f={artiste:ar,titre:(x,y)=>c(x[0].title,y[0].title)||c(x[0].artist,y[0].artist),annee:(x,y)=>x[0].year-y[0].year||ar(x,y),'annee-d':(x,y)=>y[0].year-x[0].year||ar(x,y),genre:(x,y)=>c(x[0].genre,y[0].genre)||ar(x,y),langue:(x,y)=>c(x[0].langue,y[0].langue)||ar(x,y),statut:(x,y)=>st(x[0])-st(y[0])||ar(x,y)}[SORT];return f?a.sort(f):a}
-function editTrack(i){editIdx=i;hostUI()}
+function editTrack(i){editIdx=i;hostUI();setTimeout(()=>{const c=$('fu')&&$('fu').closest('.card');if(c)c.scrollIntoView({block:'start'});if($('fa'))$('fa').focus({preventScroll:true})},50)}
 function cancelEdit(){editIdx=-1;hostUI()}
 let BQ='';
 const nrm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
