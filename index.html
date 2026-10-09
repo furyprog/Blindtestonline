@@ -75,7 +75,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.2.4';
+const VERSION='1.2.5';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -315,13 +315,14 @@ function changeCode(){askPrompt('Code administrateur actuel :',async old=>{const
 askPrompt('Nouveau code :',async v=>{if(v){const nh=await sha256(v);localStorage.setItem('bt_admin_hash',nh);alert('Code mis à jour sur cet appareil.')}})})}
 let BL;
 function rmIframe(){const o=$('sf');if(o)o.remove();const l=$('lo');if(l)l.remove()}
+function setVol(f){try{if(f&&f._v)f.contentWindow.postMessage(JSON.stringify({event:'command',func:'setVolume',args:[f._v],id:1,channel:'widget'}),'*')}catch(_){}}
 function mk(t,pos,cb,direct){rmIframe();if(BL)window.removeEventListener('blur',BL);const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow='autoplay';f.style.border=0;
 /* lecteur intégré officiel de YouTube (confidentialité renforcée) : chargé tout de suite mais en pause, il ne démarre qu'au toucher du carré noir (sauf réécoute : direct) */
 f.src='https://www.youtube-nocookie.com/embed/'+t.vid+'?playsinline=1&controls=0&fs=0&disablekb=1&rel=0&iv_load_policy=3&modestbranding=1'+(pos>1?'&start='+Math.floor(pos):'')+'&enablejsapi=1'+(direct?'&autoplay=1':'');
 const lo=document.createElement('div');lo.id='lo';lo.textContent='⏳ Chargement…';
 YS=0;YG=false;g&&(g.pf=false);TR.pf=false;maskRefresh();try{window.focus()}catch(_){}
 const hs=()=>{try{f.contentWindow.postMessage(JSON.stringify({event:'listening',id:1,channel:'widget'}),'*')}catch(_){}};let hn_=0;const hiv=setInterval(()=>{if($('sf')!==f||YG||++hn_>20){clearInterval(hiv);return}hs()},500);
-f.onload=()=>{const l=$('lo');if(l)l.remove();hs()};
+f._v=t.vol||0;f.onload=()=>{const l=$('lo');if(l)l.remove();hs();setVol(f);setTimeout(()=>setVol(f),400);setTimeout(()=>setVol(f),1500)};
 /* petit délai : laisse au clic le temps d'arriver jusqu'au lecteur avant que l'affichage ne change (sinon Firefox perd le clic) */
 BL=()=>setTimeout(()=>{if(document.activeElement===f)cb()},350);window.addEventListener('blur',BL);
 $('ytw').appendChild(f);$('ytw').appendChild(lo)}
@@ -398,7 +399,7 @@ window.addEventListener('message',e=>{if(!/youtube(-nocookie)?\.com$/.test((e.or
 try{const f0=$('sf');if(f0&&e.source===f0.contentWindow)YG=true}catch(_){}
 let st=null;if(d&&d.event=='onStateChange')st=d.info;else if(d&&d.event=='infoDelivery'&&d.info&&typeof d.info.playerState=='number')st=d.info.playerState;
 if(st===null||st===YS)return;YS=st;
-if(st==1){try{const f=$('sf');if(f&&e.source===f.contentWindow){if(typeof TR!='undefined'&&TR.on){if(TR.phase=='ready')trainGo()}else if(g){if(g.phase=='ready')go();else if(g.phase=='wait')resume()}}}catch(_){}}
+if(st==1){try{const f=$('sf');if(f&&e.source===f.contentWindow){setVol(f);if(typeof TR!='undefined'&&TR.on){if(TR.phase=='ready')trainGo()}else if(g){if(g.phase=='ready')go();else if(g.phase=='wait')resume()}}}catch(_){}}
 musClock(st);maskRefresh()});
 function musClock(st){try{const n=Date.now();
 if(typeof TR!='undefined'&&TR.on){if(TR.phase!='play')return;if(st==2&&!TR.pf){TR.rem=Math.max(0,TR.end-n);TR.pf=true}else if(st==1&&TR.pf){TR.pf=false;TR.end=n+TR.rem}return}
