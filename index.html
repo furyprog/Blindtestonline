@@ -25,6 +25,8 @@ li{list-style:none;padding:8px 10px;margin-bottom:6px;border-radius:10px;backgro
 .ld>span:last-child{flex:none;white-space:nowrap}
 #ytw{position:relative;width:200px;height:200px;margin:auto}#ytw>div{position:absolute;inset:0;background:#000;display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;font-size:42px;pointer-events:none}
 #lo{position:absolute;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;font-size:13px;text-align:center;padding:10px;color:var(--t);z-index:2}
+.plw{position:relative;height:200px;overflow:hidden}.plmask{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;color:#8d86b5;font-size:15px;border-radius:8px}.plmask[hidden]{display:none}
+#pl.car{background:#000}#pl.car .box{max-width:none;width:100%;height:100%;border:0;border-radius:0;background:#000;display:flex;flex-direction:column;justify-content:center}#pl.car h3,#pl.car #plwl{display:none}#pl.car .plw{height:60px}#pl.car .big{font-size:30px;line-height:1.25;margin:24px 0}#pl.car .plmain button{font-size:22px;padding:30px 4px;min-width:0}#pl.car .plsec{margin-top:30px}
 #ov,#hlp,#pl,#rp,#fb,#sc,#cj,#lg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:20}
 #ov[hidden],#hlp[hidden],#pl[hidden],#rp[hidden],#fb[hidden],#sc[hidden],#cj[hidden],#lg[hidden]{display:none}
 #ov .box,#hlp .box,#pl .box,#rp .box,#fb .box,#sc .box,#cj .box,#lg .box{background:var(--c);border:1px solid #352d54;border-radius:16px;padding:20px;max-width:340px;text-align:center}
@@ -73,7 +75,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.2.1';
+const VERSION='1.2.2';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -136,14 +138,14 @@ $('fb').innerHTML=`<div class="box" style="max-width:480px;width:100%;max-height
 <p class="m" style="margin-top:10px">Genres</p><div class="row" style="flex-wrap:wrap">${GENRES.map(x=>bt(PFT.genres.includes(x),`plTogF('genres','${x.replace(/'/g,"\\'")}')`,e(x))).join('')}</div>
 <p class="m" style="margin-top:10px">Langues</p><div class="row" style="flex-wrap:wrap">${LANGS.map(x=>bt(PFT.langues.includes(x),`plTogF('langues','${x}')`,e(x))).join('')}</div>
 <div class="row" style="margin-top:10px"><div><label class="m">Année min</label><input id="pyMin" type="number" value="${PFT.yMin}" oninput="PFT.yMin=this.value;plSaveF();plCnt()"></div><div><label class="m">Année max</label><input id="pyMax" type="number" value="${PFT.yMax}" oninput="PFT.yMax=this.value;plSaveF();plCnt()"></div></div>
-<p class="m" id="plcn" style="margin-top:10px"></p><div class="row"><button class="p" onclick="plSetClose()">OK</button></div></div>`;plCnt();$('fb').hidden=false}
+<p class="m" style="margin-top:14px">Affichage</p><div class="row">${bt(PLV(),"plTogV('bt_plvid')","🎬 Afficher la vidéo : "+(PLV()?"oui":"non"))}${bt(PLC(),"plTogV('bt_plcar')","🚗 Mode voiture : "+(PLC()?"oui":"non"))}</div><p class="m" style="margin-top:6px">Par défaut, la vidéo est masquée (seul le son est lu). Le mode voiture affiche un écran noir avec le titre en gros et de grands boutons, et masque toujours la vidéo.</p><p class="m" id="plcn" style="margin-top:10px"></p><div class="row"><button class="p" onclick="plSetClose()">OK</button></div></div>`;plCnt();$('fb').hidden=false}
 function plCnt(){const n=$('plcn');if(n)n.textContent='🎶 '+DB.filter(pMatches).length+' titre(s) dans la playlist'}
 function plTogF(k,v){const a=PFT[k],i=a.indexOf(v);i>=0?a.splice(i,1):a.push(v);plSaveF();plSet()}
 function plPre(a,b,l){PFT.genres=[];PFT.langues=l;PFT.yMin=a;PFT.yMax=b;plSaveF();plSet()}
 function plSetClose(){if(PFT.yMin&&PFT.yMax&&+PFT.yMin>+PFT.yMax){const t=PFT.yMin;PFT.yMin=PFT.yMax;PFT.yMax=t;plSaveF()}$('fb').hidden=true}
 function plBegin(sv){let b=null;if(sv){plq=sv.q.slice();pli=Math.max(0,plq.findIndex(x=>x.vid==sv.tr.vid))-1;plAt=Math.max(0,sv.t-2)}else{b=DB.filter(pMatches);if(!b.length){alert('Aucun titre ne correspond aux filtres de la playlist (⚙️ Réglages playlist).');return}plq=b.slice().sort(()=>Math.random()-.5);pli=-1;plAt=0}
 rmIframe();clearTimeout(tm);
-$('pl').innerHTML='<div class="box" style="max-width:420px;width:100%"><h3>🎶 Playlist aléatoire</h3><div id="plp"><div id="plyt"></div></div><div id="pln" class="big" style="margin:10px 0"></div><div class="m" id="plc"></div><p class="m" id="plwl" style="margin-top:8px"></p><div class="row" style="margin-top:10px"><button onclick="plTog()">⏯</button><button class="p" onclick="plNext()">⏭ Suivant</button><button class="g" onclick="plReport()">🚩 Signaler</button><button class="d" onclick="plStop()">✕ Quitter</button></div></div>';$('pl').hidden=false;wl(true);$('plwl').textContent='wakeLock' in navigator?"🔆 L'écran reste allumé tant que la playlist est ouverte. Ne verrouille pas le téléphone avec le bouton.":"⚠️ Ce navigateur ne peut pas garder l'écran allumé : désactive la mise en veille automatique.";
+$('pl').innerHTML='<div class="box" style="max-width:420px;width:100%"><h3>🎶 Playlist aléatoire</h3><div id="plp" class="plw"><div id="plyt"></div><div class="plmask" id="plm">🎵 Vidéo masquée</div></div><div id="pln" class="big" style="margin:10px 0"></div><div class="m" id="plc"></div><p class="m" id="plwl" style="margin-top:8px"></p><div class="row plmain" style="margin-top:10px"><button onclick="plPrev()">⏮</button><button onclick="plTog()">⏯</button><button class="p" onclick="plNext()">⏭ Suivant</button></div><div class="row plsec" style="margin-top:10px"><button class="g" onclick="plCar()">🚗 Voiture</button><button class="g" onclick="plReport()">🚩 Signaler</button><button class="d" onclick="plStop()">✕ Quitter</button></div></div>';$('pl').hidden=false;plView();wl(true);$('plwl').textContent='wakeLock' in navigator?"🔆 L'écran reste allumé tant que la playlist est ouverte. Ne verrouille pas le téléphone avec le bouton.":"⚠️ Ce navigateur ne peut pas garder l'écran allumé : désactive la mise en veille automatique.";
 if(window.YT&&YT.Player)plNext();else{window.onYouTubeIframeAPIReady=()=>plNext();const sc=document.createElement('script');sc.src='https://www.youtube.com/iframe_api';document.head.appendChild(sc)}}
 function plNext(){pli++;if(pli>=plq.length){plq.sort(()=>Math.random()-.5);pli=0}const t=plq[pli],st0=plAt;plAt=0;plSave(st0);$('pln').innerHTML=vdot(t,1)+e(t.artist)+' — '+e(t.title)+' ('+t.year+')';$('plc').textContent=(pli+1)+' / '+plq.length;
 if(ytp){ytp.loadVideoById({videoId:t.vid,startSeconds:st0});try{ytp.setVolume(t.vol||100)}catch(_){}return}
@@ -162,8 +164,13 @@ const PF='https://docs.google.com/forms/d/e/1FAIpQLSf5iUxhvnp1UsVh7kpEpmpeK-Cg8B
 function propose(t){const l=JSON.parse(localStorage.getItem('bt_props')||'[]');if(l.some(x=>x.vid===t.vid))return;l.push({vid:t.vid,lien:'https://www.youtube.com/watch?v='+t.vid,artiste:t.artist,titre:t.title,annee:t.year,genre:t.genre,langue:t.langue,infos:fbInfos(),sent:0});localStorage.setItem('bt_props',JSON.stringify(l.slice(-100)));sendProps()}
 function sendProps(){const l=JSON.parse(localStorage.getItem('bt_props')||'[]');l.filter(x=>!x.sent).forEach(x=>{fetch(PF,{method:'POST',mode:'no-cors',body:new URLSearchParams({'entry.1849119998':x.lien,'entry.883309421':x.artiste,'entry.910802051':x.titre,'entry.1460548180':String(x.annee),'entry.1001517602':x.genre,'entry.890844371':x.langue,'entry.1783437599':x.infos})}).then(()=>{x.sent=1;localStorage.setItem('bt_props',JSON.stringify(l))}).catch(()=>{})})}
 setTimeout(sendProps,5000);addEventListener('online',sendProps);
+const PLV=()=>localStorage.getItem('bt_plvid')==='1',PLC=()=>localStorage.getItem('bt_plcar')==='1';
+function plView(){const c=PLC();$('pl').classList.toggle('car',c);const m=$('plm');if(m)m.hidden=PLV()&&!c}
+function plCar(){try{localStorage.setItem('bt_plcar',PLC()?'0':'1')}catch(_){}plView()}
+function plTogV(k){try{localStorage.setItem(k,localStorage.getItem(k)==='1'?'0':'1')}catch(_){}plSet()}
+function plPrev(){pli=Math.max(-1,pli-2);plNext()}
 function plTog(){if(!ytp)return;ytp.getPlayerState()===1?ytp.pauseVideo():ytp.playVideo()}
-function plStop(){try{localStorage.removeItem(PLK)}catch(_){}wl(false);try{ytp&&ytp.destroy()}catch(_){}ytp=null;$('pl').hidden=true;$('pl').innerHTML=''}
+function plStop(){$('pl').classList.remove('car');try{localStorage.removeItem(PLK)}catch(_){}wl(false);try{ytp&&ytp.destroy()}catch(_){}ytp=null;$('pl').hidden=true;$('pl').innerHTML=''}
 const GENRES=['Rock & Alternatif / Metal','Pop','Rap / Hip-Hop','Électronique / Dance','Soul / R&B / Funk','B.O. Films / Séries','Comédies musicales','Dessins animés','Variété / Chanson','Folk / Country','Reggae / Dancehall'];
 let filt=JSON.parse(localStorage.getItem('bt_filt')||'{"genres":[],"langues":[],"yMin":"","yMax":""}');
 const saveFilt=()=>localStorage.setItem('bt_filt',JSON.stringify(filt));filt.genres=filt.genres.filter(x=>GENRES.includes(x));
