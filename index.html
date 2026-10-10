@@ -23,7 +23,7 @@ li{list-style:none;padding:8px 10px;margin-bottom:6px;border-radius:10px;backgro
 .ld{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px 10px;padding:6px 0;border-bottom:1px solid #2c2648}
 .ld>span:first-child{flex:1 1 180px;min-width:0;word-break:break-word}
 .ld>span:last-child{flex:none;white-space:nowrap}
-#ytw{position:relative;width:200px;height:200px;margin:auto}#ytw>div{position:absolute;inset:0;background:#000;display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;font-size:42px;pointer-events:none}
+#ytw .yb{position:absolute;left:0;right:0;z-index:3;background:transparent}#ytw .yb.t{top:0;height:24%}#ytw .yb.b{bottom:0;height:30%}#ytw{position:relative;width:200px;height:200px;margin:auto}#ytw>div{position:absolute;inset:0;background:#000;display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;font-size:42px;pointer-events:none}
 #lo{position:absolute;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;font-size:13px;text-align:center;padding:10px;color:var(--t);z-index:2}
 .plw{position:relative;height:200px;overflow:hidden}.plmask{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;color:#8d86b5;font-size:15px;border-radius:8px}.plmask img{max-width:100%;max-height:100%;object-fit:contain;-webkit-mask-image:radial-gradient(circle closest-side,#000 84%,transparent 100%);mask-image:radial-gradient(circle closest-side,#000 84%,transparent 100%)}.plmask[hidden]{display:none}
 #pl.car{background:#000}#pl.car .box{max-width:none;width:100%;height:100%;border:0;border-radius:0;background:#000;display:flex;flex-direction:column;justify-content:center}#pl.car h3,#pl.car #plwl{display:none}#pl.car .plw{height:60px}#pl.car .big{font-size:30px;line-height:1.25;margin:24px 0}#pl.car .plmain button{font-size:22px;padding:30px 4px;min-width:0}#pl.car .plsec{margin-top:30px}
@@ -75,7 +75,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.2.18';
+const VERSION='1.2.19';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -318,7 +318,7 @@ function openBase(){tab='b';hostUI()}
 function changeCode(){askPrompt('Code administrateur actuel :',async old=>{const oh=await sha256(old||'');if(oh!==effHash()){alert('Code incorrect.');return}
 askPrompt('Nouveau code :',async v=>{if(v){const nh=await sha256(v);localStorage.setItem('bt_admin_hash',nh);alert('Code mis à jour sur cet appareil.')}})})}
 let BL;
-function rmIframe(){const o=$('sf');if(o)o.remove();const l=$('lo');if(l)l.remove()}
+function rmIframe(){document.querySelectorAll('#ytw .yb').forEach(x=>x.remove());const o=$('sf');if(o)o.remove();const l=$('lo');if(l)l.remove()}
 function setVol(f){try{if(f&&f._v&&SET.vr)f.contentWindow.postMessage(JSON.stringify({event:'command',func:'setVolume',args:[f._v],id:1,channel:'widget'}),'*')}catch(_){}}
 function mk(t,pos,cb,direct){rmIframe();if(BL)window.removeEventListener('blur',BL);const f=document.createElement('iframe');f.id='sf';f.width=200;f.height=200;f.allow='autoplay';f.style.border=0;
 /* lecteur intégré officiel de YouTube (confidentialité renforcée) : chargé tout de suite mais en pause, il ne démarre qu'au toucher du carré noir (sauf réécoute : direct) */
@@ -329,7 +329,9 @@ const hs=()=>{try{f.contentWindow.postMessage(JSON.stringify({event:'listening',
 f._v=t.vol||0;f.onload=()=>{const l=$('lo');if(l)l.remove();hs();setVol(f);setTimeout(()=>setVol(f),400);setTimeout(()=>setVol(f),1500)};
 /* petit délai : laisse au clic le temps d'arriver jusqu'au lecteur avant que l'affichage ne change (sinon Firefox perd le clic) */
 BL=()=>setTimeout(()=>{if(document.activeElement===f)cb()},350);window.addEventListener('blur',BL);
-$('ytw').appendChild(f);$('ytw').appendChild(lo)}
+$('ytw').appendChild(f);$('ytw').appendChild(lo);
+/* bandes transparentes en haut et en bas du carré : empêchent d'ouvrir YouTube (titre / logo) ; un toucher dessus lance simplement la lecture */
+['t','b'].forEach(c=>{const z=document.createElement('span');z.className='yb '+c;z.onclick=ev=>{ev.preventDefault();ev.stopPropagation();if(TR.on&&TR.phase=='play')return;try{f.contentWindow.postMessage(JSON.stringify({event:'command',func:YS==1?'pauseVideo':'playVideo',args:'',id:1,channel:'widget'}),'*')}catch(_){}};$('ytw').appendChild(z)})}
 function pickRnd(){let base=DB.filter(matches);if(!base.length)return null;
 let p=base.filter(x=>!g.played.includes(x.id)&&x!==g.next);if(!p.length){g.played=[];p=base.filter(x=>x!==g.next);if(!p.length)p=base}return p[Math.random()*p.length|0]}
 function arm(t){if(!['idle','ready','done'].includes(g.phase))return;clearTimeout(tm);
