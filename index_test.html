@@ -75,7 +75,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.2.31';
+const VERSION='1.2.45';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -451,6 +451,7 @@ const defiFr=d=>String(d).split('-').reverse().join('/');
 const defiGet=()=>{try{const o=JSON.parse(localStorage.getItem('bt_defi')||'null');return o&&o.d==defiDay()?o:null}catch(_){return null}};
 const defiPut=o=>{try{localStorage.setItem('bt_defi',JSON.stringify(o))}catch(_){}};
 const defiBest=()=>{try{return JSON.parse(localStorage.getItem('bt_defibest')||'null')}catch(_){return null}};
+const DEFI_LEG='Un carré par titre : 🟩 3 points ou plus · 🟨 1 ou 2 points · ⬛ 0 point';
 const defiGrid=g=>(g||[]).map(p=>p>=3?'🟩':p>=1?'🟨':'⬛').join('');
 function defiRng(k){let h=2166136261;for(const c of k)h=Math.imul(h^c.charCodeAt(0),16777619);let s=h>>>0;return()=>{s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function defiPick(L,d){const r=defiRng(d+'#buzzhit');
@@ -463,27 +464,88 @@ function defiCheck(){const t=TR.cur;TR.phase='reveal';TR.a=TR.qa!=null&&dnorm(t.
 function defiPool(){return fetch('titres.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():Promise.reject()).then(L=>L.map(x=>{const v=x.vid||vid(x.url||'');return v&&x.artist&&x.title&&x.year?{id:String(x.id||v),vid:v,artist:x.artist,title:x.title,year:+x.year,genre:x.genre||'',langue:x.langue||'',verifie:x.verifie||'',vol:+x.vol||0,base:1}:null}).filter(Boolean)).catch(()=>DB.filter(t=>t.base).map(t=>Object.assign({},t,{id:String(t.id)})))}
 function defiOff(){if(TR.sv)Object.assign(SET,TR.sv)}
 function trainStop(){clearInterval(TR.iv);rmIframe();if(BL)window.removeEventListener('blur',BL);defiOff();TR={on:false};keepAwake=false;wl(false)}
-function defiStart(){const st=defiGet();if(st&&st.done){trainStop();defiDone(st);return}
+/* pseudo obligatoire avant un nouveau défi : il est gardé avec le score du jour et affiché sur l'image */
+function defiAsk(){trainStop();let v='';try{v=localStorage.getItem('bt_dpseudo')||JSON.parse(localStorage.getItem('bt_last')||'{}').n||''}catch(_){}
+A.innerHTML=`<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="card"><div class="big" style="text-align:center">🎯 Défi du jour</div><p class="m" style="text-align:center">Ton pseudo apparaîtra sur l'image de ton score.</p><input id="dpn" placeholder="Ton pseudo" maxlength="16" enterkeyhint="go" value="${e(v)}" onkeydown="if(event.key==='Enter')defiPseudoOk()"><button class="p" style="width:100%;margin-top:10px" onclick="defiPseudoOk()">▶ Commencer le défi</button><button style="width:100%;margin-top:8px" onclick="home()">← Accueil</button></div>`;const i=$('dpn');if(i&&!v)i.focus()}
+function defiPseudoOk(){const i=$('dpn'),v=i?i.value.trim().replace(/\s+/g,' '):'';if(!v){toast('✏️ Entre ton pseudo pour jouer le défi');if(i)i.focus();return}try{localStorage.setItem('bt_dpseudo',v)}catch(_){}defiStart(v)}
+function defiStart(p){const st=defiGet();if(st&&st.done){trainStop();defiDone(st);return}if(!st&&!p){defiAsk();return}
 trainStop();A.innerHTML='<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="card" id="dfl"><p class="m" style="text-align:center">🎯 Préparation du défi du jour…</p></div>';
 defiPool().then(L=>{if(!$('dfl'))return;const d=st?st.d:defiDay(),list=defiChoices(defiPick(L,d),L,d);if(list.length<DEFI_N){toast('⚠️ Base de titres indisponible, réessaie plus tard');trainStart();return}
-const s=st||{d,n:0,score:0,fa:0,ft:0,fy:0,bz:0,ms:0,fb:0,g:[]};if(s.open!=null){s.g[s.open]=0;s.n=s.open+1;s.ms=(s.ms||0)+1;s.open=null;defiPut(s)}
+const s=st||{d,p,n:0,score:0,fa:0,ft:0,fy:0,bz:0,ms:0,fb:0,g:[]};if(s.open!=null){s.g[s.open]=0;s.n=s.open+1;s.ms=(s.ms||0)+1;s.open=null;defiPut(s)}
 if(!st){gc('defi-demarre','Défi du jour démarré');defiPut(s)}
-TR={on:true,defi:1,dd:d,list,played:[],iv:setInterval(trainTick,250),len:DEFI_N,sv:Object.fromEntries(Object.keys(DEFI_SET).map(k=>[k,SET[k]]))};Object.assign(SET,DEFI_SET);trainReset();
+TR={on:true,defi:1,dd:d,dp:s.p||'',list,played:[],iv:setInterval(trainTick,250),len:DEFI_N,sv:Object.fromEntries(Object.keys(DEFI_SET).map(k=>[k,SET[k]]))};Object.assign(SET,DEFI_SET);trainReset();
 Object.assign(TR,{n:s.n,score:s.score,fa:s.fa,ft:s.ft,fy:s.fy,bz:s.bz,ms:s.ms||0,fb:s.fb||0,g:s.g||[]});keepAwake=true;wl(true);trainUI();trainNext()})}
-const defiState=()=>({d:TR.dd,n:TR.n,score:TR.score,fa:TR.fa,ft:TR.ft,fy:TR.fy,bz:TR.bz,ms:TR.ms,fb:TR.fb||0,g:TR.g});
+const defiState=()=>({d:TR.dd,p:TR.dp,n:TR.n,score:TR.score,fa:TR.fa,ft:TR.ft,fy:TR.fy,bz:TR.bz,ms:TR.ms,fb:TR.fb||0,g:TR.g});
 function defiSave(open){if(!TR.defi)return;const s=defiState();s.open=open==null?null:open;if(TR.n>=DEFI_N)s.done=1;defiPut(s)}
 function defiFinal(){TR.phase='final';rmIframe();defiSave();const b=defiBest();TR.prev=b;TR.newRec=!b||TR.score>b.pts;if(TR.newRec)try{localStorage.setItem('bt_defibest',JSON.stringify({pts:TR.score,date:defiFr(TR.dd)}))}catch(_){}
 gc('defi-fini','Défi du jour terminé');snd(TR.newRec?'win':'ok');trainRender()}
-function defiRecap(s){const b=defiBest();return `<div class="big" style="text-align:center">🎯 Défi du jour du ${defiFr(s.d)}</div><div class="big" style="text-align:center;color:var(--a)">${pts(s.score)} sur ${DEFI_N*5}</div><div style="text-align:center;font-size:20px;letter-spacing:1px;margin:6px 0">${defiGrid(s.g)}</div><div class="card" style="margin:10px 0"><div class="ld"><span>Artistes trouvés</span><b>${s.fa}/${DEFI_N}</b></div><div class="ld"><span>Titres trouvés</span><b>${s.ft}/${DEFI_N}</b></div><div class="ld"><span>Années exactes</span><b>${s.fy}/${DEFI_N}</b></div><div class="ld"><span>⚡ Buzz rapides</span><b>${s.fb||0}/${DEFI_N}</b></div></div>${b?`<p class="m" style="text-align:center">🏆 Ton meilleur défi : ${pts(b.pts)} (${e(b.date||'')})</p>`:''}<p class="m" style="text-align:center;margin-bottom:6px">📤 Partager mon score</p><div class="row" style="flex-wrap:wrap"><button class="p" onclick="defiShare('fb')">Facebook</button><button class="p" onclick="defiShare('wa')">WhatsApp</button></div><div class="row" style="flex-wrap:wrap;margin-top:8px"><button onclick="defiShare('cp')">📋 Copier</button>${navigator.share?`<button onclick="defiShare()">📤 Autres…</button>`:''}</div><p class="m" style="text-align:center">Un seul essai par jour : nouveau défi demain !</p>`}
+function defiRecap(s){const b=defiBest();return `<div class="big" style="text-align:center">🎯 Défi du jour du ${defiFr(s.d)}</div>${s.p?`<p class="big" style="text-align:center;margin:4px 0">👤 ${e(s.p)}</p>`:''}<div class="big" style="text-align:center;color:var(--a)">${pts(s.score)} sur ${DEFI_N*5}</div><div style="text-align:center;font-size:20px;letter-spacing:1px;margin:6px 0 2px">${defiGrid(s.g)}</div><p class="m" style="text-align:center;font-size:12px;margin:0 0 6px">${DEFI_LEG}</p><div class="card" style="margin:10px 0"><div class="ld"><span>Artistes trouvés</span><b>${s.fa}/${DEFI_N}</b></div><div class="ld"><span>Titres trouvés</span><b>${s.ft}/${DEFI_N}</b></div><div class="ld"><span>Années exactes</span><b>${s.fy}/${DEFI_N}</b></div><div class="ld"><span>⚡ Buzz rapides</span><b>${s.fb||0}/${DEFI_N}</b></div></div>${b?`<p class="m" style="text-align:center">🏆 Ton meilleur défi : ${pts(b.pts)} (${e(b.date||'')})</p>`:''}<p class="m" style="text-align:center;margin-bottom:6px">📤 Partager mon score</p><div class="row" style="flex-wrap:wrap"><button class="p" onclick="defiImgShare()">🖼 Partager l'image</button><button class="p" onclick="defiImgSave()">💾 Enregistrer l'image</button></div><p class="m" style="text-align:center;margin:10px 0 4px">ou en texte :</p><div class="row" style="flex-wrap:wrap"><button onclick="defiShare('fb')">Facebook</button><button onclick="defiShare('wa')">WhatsApp</button><button onclick="defiShare('cp')">📋 Copier</button></div><p class="m" style="text-align:center">Un seul essai par jour : nouveau défi demain !</p>`}
 /* bouton de l'accueil : invite à jouer, à reprendre, ou rappelle le score et l'heure du prochain défi */
 function defiHome(){const s=defiGet();let t,m,go='';if(s&&s.done){const h=24-(+new Date().toLocaleString('fr-FR',{timeZone:'Europe/Paris',hour:'numeric',hourCycle:'h23'}).replace(/\D/g,'')||0);t=`Défi du jour ✅ ${s.score}/${DEFI_N*5}`;m=`Partage ton score ! Nouveau défi dans ${h<=1?'moins d’1 h':h+' h'}.`}else if(s){t='Reprendre le défi du jour';m=`Encore ${DEFI_N-s.n} titre${DEFI_N-s.n>1?'s':''} pour finir ton score.`;go=' go'}else{t='Défi du jour';m='10 titres, les mêmes pour tout le monde aujourd’hui. Feras-tu mieux que tes amis ?';go=' go'}
 return `<button class="dfh${go}" onclick="defiStart()"><span class="ic">🎯</span><span><b>${t}</b><small>${m}</small></span></button>`}
 function defiDone(s){A.innerHTML=`<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="card">${defiRecap(s)}<button style="width:100%;margin-top:8px" onclick="trainStart()">🎧 Entraînement libre</button><button style="width:100%;margin-top:8px" onclick="home()">← Accueil</button></div>`}
+/* image du score (plus difficile à modifier qu'un texte) : dessinée sur l'appareil, partagée ou enregistrée en PNG */
+/* police de l'image (Google Fonts), chargée à l'avance pour être prête au moment du partage */
+const DFONT={f:'Baloo 2',b:800,n:600,s:'Kalam',sw:700};try{const l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Kalam:wght@700&display=swap';document.head.appendChild(l);l.onload=()=>{try{['800 40px "Baloo 2"','600 40px "Baloo 2"','700 40px Kalam'].forEach(f=>document.fonts.load(f))}catch(_){}}}catch(_){}
+const DLOGO=new Image();DLOGO.src='BuzzHit.png';
+/* QR code de https://buzzhit.fr/ (généré avec segno puis vérifié par lecture) : 1 = module noir */
+const DQR='1111111001101100001111111,1000001001110100001000001,1011101001101110001011101,1011101011110100001011101,1011101000010010001011101,1000001010111110001000001,1111111010101010101111111,0000000011101011100000000,0110001000101110101101000,1110110010101001011101011,1010101010000111101101101,0110110010101000110001000,0101011110101111001100001,0101000111000001111100011,1100011100101101010001101,0011000110100010001111000,1110111010011010111110010,0000000011001000100010001,1111111001111010101010001,1000001000111001100010011,1011101000010111111110011,1011101000101000010010110,1011101011111101000111011,1000001011001110101110000,1111111001010100110001001'.split(',');
+/* fond de l'image (lumières, téléphone, casque, barres de son), fichier defi-fond.jpg à côté de index.html */
+const DBG=new Image();DBG.src='defi-fond.jpg';
+function defiImg(s){const W=1600,H=900,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d'),D=window.DFV||DFONT,F='"'+D.f+'","Segoe UI",Roboto,Helvetica,Arial,sans-serif',B=D.b,N=D.n,S=n=>D.sw+' '+n+'px "'+D.s+'",cursive',mx=DEFI_N*5,Y='#FFD21F';
+let sd=7;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
+/* trait de pinceau : bande aux bords irréguliers, extrémités effilées */
+const brush=(X,Yy,w,h,fill,al)=>{x.save();x.globalAlpha=al||1;x.fillStyle=fill;x.beginPath();const st=18;x.moveTo(X+h*.3,Yy+h*.15);for(let k=0;k<=w;k+=st)x.lineTo(X+k,Yy+(rnd()-.5)*h*.18+(k<h||k>w-h?h*.12:0));x.lineTo(X+w+h*.35,Yy+h*.35);x.lineTo(X+w-h*.1,Yy+h*.55);x.lineTo(X+w+h*.25,Yy+h*.8);for(let k=w;k>=0;k-=st)x.lineTo(X+k,Yy+h+(rnd()-.5)*h*.18-(k<h||k>w-h?h*.12:0));x.lineTo(X-h*.25,Yy+h*.7);x.lineTo(X+h*.05,Yy+h*.5);x.closePath();x.fill();
+x.globalAlpha=(al||1)*.5;for(let k=0;k<3;k++){x.fillRect(X+w*.15+rnd()*w*.6,Yy+(k%2?h+3:-6),w*(.12+rnd()*.2),3)}x.restore()};
+const under=(X,Yy,w,col,lw)=>{x.save();x.strokeStyle=col;x.lineWidth=lw||8;x.lineCap='round';x.beginPath();x.moveTo(X,Yy);x.quadraticCurveTo(X+w*.5,Yy+12,X+w,Yy-8);x.stroke();x.restore()};
+const spark=(X,Yy,dir)=>{x.save();x.strokeStyle=Y;x.lineWidth=7;x.lineCap='round';[[-0.7,46],[0,52],[0.7,46]].forEach(([a,l])=>{const an=(dir<0?Math.PI:0)+a;x.beginPath();x.moveTo(X+Math.cos(an)*24,Yy+Math.sin(an)*24);x.lineTo(X+Math.cos(an)*l,Yy+Math.sin(an)*l);x.stroke()});x.restore()};
+const glow=(col,b)=>{x.shadowColor=col;x.shadowBlur=b};
+if(DBG.complete&&DBG.naturalWidth)x.drawImage(DBG,0,0,W,H);else{x.fillStyle='#070634';x.fillRect(0,0,W,H);if(DLOGO.complete&&DLOGO.naturalWidth)x.drawImage(DLOGO,40,30,380,380)}
+/* filigrane léger sur la partie droite */
+{const o=document.createElement('canvas');o.width=W-460;o.height=H-60;const q=o.getContext('2d');q.translate(o.width/2,o.height/2);q.rotate(-.35);q.font=B+' 24px '+F;q.textAlign='center';q.fillStyle='rgba(255,255,255,.07)';const wm=`BUZZ'HIT · ${s.p?s.p+' · ':''}${defiFr(s.d)} · ${s.score}/${mx}`;for(let r=-18;r<=18;r++)for(let k=-4;k<=4;k++)q.fillText(wm,k*440+(r%2?220:0),r*44);x.drawImage(o,460,0)}
+/* titre */
+brush(490,62,640,128,'rgba(8,6,30,.85)');spark(515,128,-1);spark(1150,118,1);
+x.save();x.translate(530,170);x.rotate(-.04);x.textAlign='left';x.fillStyle='#fff';glow('rgba(0,0,0,.6)',8);x.font=S(108);x.fillText('Défi du jour',0,0);x.shadowBlur=0;under(10,30,x.measureText('Défi du jour').width-20,Y,9);x.restore();
+/* date */
+{x.save();x.translate(1405,118);x.rotate(-.06);const g=x.createLinearGradient(-170,0,170,0);g.addColorStop(0,'#ff2fb0');g.addColorStop(1,'#a43cff');brush(-165,-45,330,86,g,.95);x.fillStyle='#fff';x.font=B+' 54px '+F;x.textAlign='center';x.fillText(defiFr(s.d),0,18);x.restore()}
+/* cadre néon pseudo + score */
+{const bx=470,by=212,bw=1090,bh=178;x.save();x.beginPath();x.roundRect?x.roundRect(bx,by,bw,bh,24):x.rect(bx,by,bw,bh);x.fillStyle='rgba(6,4,30,.72)';x.fill();const g=x.createLinearGradient(bx,0,bx+bw,0);g.addColorStop(0,'#ff3fd0');g.addColorStop(.5,'#b45bff');g.addColorStop(1,'#ff6ae0');x.strokeStyle=g;x.lineWidth=6;glow('#ff3fd0',28);x.stroke();x.shadowBlur=14;x.stroke();x.restore();
+x.save();x.strokeStyle='rgba(255,255,255,.75)';x.lineWidth=3;x.beginPath();x.moveTo(830,240);x.lineTo(830,362);x.stroke();x.restore();
+if(s.p){let fs=80;x.font=S(fs);while(fs>28&&x.measureText(s.p).width>300){fs-=2;x.font=S(fs)}x.textAlign='center';x.fillStyle='#fff';x.fillText(s.p,650,325);const pw=x.measureText(s.p).width;under(650-pw/2-10,345,pw+20,'#ff3fd0',7)}
+x.font=S(66);const ptw=x.measureText('points').width;x.textAlign='left';x.fillStyle=Y;x.fillText('points',1540-ptw,350);under(1540-ptw,370,ptw,Y,6);spark(1500,262,1);
+const sc=s.score+' / '+mx;x.font=S(148);x.textAlign='right';const sg=x.createLinearGradient(0,230,0,360);sg.addColorStop(0,'#fff59a');sg.addColorStop(.5,'#ffd21f');sg.addColorStop(1,'#ff9f0a');x.save();glow('rgba(255,180,0,.8)',22);x.fillStyle=sg;x.fillText(sc,1540-ptw-20,358);x.restore()
+/* filigrane par-dessus le pseudo et le score, limité au cadre */
+x.save();x.beginPath();x.roundRect?x.roundRect(bx,by,bw,bh,24):x.rect(bx,by,bw,bh);x.clip();x.translate(bx+bw/2,by+bh/2);x.rotate(-.35);x.font=B+' 22px '+F;x.textAlign='center';x.fillStyle='rgba(255,255,255,.16)';const wm2=`BUZZ'HIT · ${s.p?s.p+' · ':''}${defiFr(s.d)} · ${s.score}/${mx}`;for(let r=-8;r<=8;r++)for(let k=-3;k<=3;k++)x.fillText(wm2,k*400+(r%2?200:0),r*36);x.restore()}
+/* carrés */
+{const sq=92,gp=18,g=s.g||[];for(let i=0;i<DEFI_N;i++){const p=g[i]||0,[f,l]=p>=3?['#22d36b','#7dffb0']:p>=1?['#ffc21f','#fff08a']:['#5d5b72','#b9b6d6'],X=472+i*(sq+gp);x.save();x.beginPath();x.roundRect?x.roundRect(X,405,sq,sq,14):x.rect(X,405,sq,sq);x.fillStyle=f;glow(l,16);x.fill();x.shadowBlur=0;x.strokeStyle=l;x.lineWidth=4;x.stroke();x.restore()}}
+/* légende sur trait de pinceau */
+{const g=x.createLinearGradient(520,0,1560,0);g.addColorStop(0,'#19c8ff');g.addColorStop(.55,'#8a5cff');g.addColorStop(1,'#ff3fd0');brush(520,522,1030,58,g,.85);x.save();x.translate(1035,563);x.transform(1,0,-.15,1,0,0);x.textAlign='center';x.fillStyle='#fff';x.font=B+' 31px '+F;x.fillText('Un carré par titre : vert 3 points ou plus  ·  jaune 1 ou 2  ·  gris 0',0,0);x.restore()}
+/* détail des résultats : 4 bandeaux colorés avec icône */
+const ico=(X,Yy,col,k)=>{x.save();x.beginPath();x.arc(X,Yy,40,0,7);x.fillStyle='#120c3a';x.fill();x.lineWidth=7;x.strokeStyle=col;glow(col,14);x.stroke();x.shadowBlur=0;x.fillStyle=k=='star'?'#1a1040':'#fff';x.strokeStyle='#fff';
+if(k=='mic'){x.beginPath();x.roundRect?x.roundRect(X-9,Yy-24,18,30,9):x.rect(X-9,Yy-24,18,30);x.fill();x.lineWidth=4;x.beginPath();x.arc(X,Yy-4,16,0,Math.PI);x.stroke();x.beginPath();x.moveTo(X,Yy+12);x.lineTo(X,Yy+22);x.moveTo(X-10,Yy+22);x.lineTo(X+10,Yy+22);x.stroke()}
+else if(k=='note'){x.font='bold 48px '+F;x.textAlign='center';x.fillText('♫',X,Yy+16)}
+else if(k=='star'){x.beginPath();x.arc(X,Yy,32,0,7);x.fillStyle=Y;x.fill();x.fillStyle='#1a1040';x.beginPath();for(let t=0;t<10;t++){const r=t%2?9:22,an=-Math.PI/2+t*Math.PI/5;x.lineTo(X+Math.cos(an)*r,Yy+Math.sin(an)*r)}x.closePath();x.fill()}
+else{x.lineWidth=3;[24,16,8].forEach(r=>{x.beginPath();x.arc(X,Yy,r,0,7);x.stroke()});x.beginPath();x.arc(X,Yy,3,0,7);x.fill()}x.restore()};
+const pill=(X,Yy,c1,c2,k,txt,dark)=>{const g=x.createLinearGradient(X,0,X+470,0);g.addColorStop(0,c1);g.addColorStop(1,c2);brush(X+20,Yy-30,455,62,g,.92);ico(X,Yy,c1,k);x.save();x.translate(X+60,Yy+14);x.transform(1,0,-.15,1,0,0);x.textAlign='left';x.fillStyle=dark?'#1a1040':'#fff';x.font=B+' 37px '+F;x.fillText(txt,0,0);x.restore()};
+pill(540,640,'#ff3fd0','#a43cff','mic',`Artistes ${s.fa}/${DEFI_N}`);pill(1080,640,'#19c8ff','#3a7bff','note',`Titres ${s.ft}/${DEFI_N}`);
+pill(540,728,'#ffd21f','#ffb000','star',`Années exactes ${s.fy}/${DEFI_N}`,1);pill(1080,728,'#a43cff','#7a4bff','disc',`Buzz rapides ${s.fb||0}/${DEFI_N}`);
+/* slogan */
+{x.save();x.translate(910,840);x.rotate(-.03);x.font=S(64);const a1='Fais mieux que moi sur ',a2='buzzhit.fr',w1=x.measureText(a1).width,w2=x.measureText(a2).width,X0=-(w1+w2)/2;x.textAlign='left';glow('rgba(0,0,0,.7)',10);x.fillStyle='#fff';x.fillText(a1,X0,0);x.fillStyle=Y;x.fillText(a2,X0+w1,0);x.shadowBlur=0;under(X0+w1,24,w2,Y,8);
+/* flèche de sous le « r » de buzzhit.fr vers le QR code */
+{const e=X0+w1+w2,ex=1444-910-14,ey=-4;x.strokeStyle=Y;x.lineWidth=5;x.lineCap='round';x.beginPath();x.moveTo(e-10,40);x.quadraticCurveTo(ex-10,52,ex,ey);x.stroke();const an=Math.atan2(ey-52,ex-(ex-10));x.beginPath();x.moveTo(ex,ey);x.lineTo(ex-14*Math.cos(an-.5),ey-14*Math.sin(an-.5));x.moveTo(ex,ey);x.lineTo(ex-14*Math.cos(an+.5),ey-14*Math.sin(an+.5));x.stroke()}x.restore()}
+/* QR code (vérifié) */
+{const n=DQR.length,m=4,qz=3,qs=(n+2*qz)*m,qx=1452,qy=742;x.save();x.beginPath();x.roundRect?x.roundRect(qx-8,qy-8,qs+16,qs+16,14):x.rect(qx-8,qy-8,qs+16,qs+16);x.fillStyle='#fff';x.fill();x.restore();x.fillStyle='#000';for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(DQR[r][k]=='1')x.fillRect(qx+(qz+k)*m,qy+(qz+r)*m,m,m);}
+const u=c.toDataURL('image/png'),b=atob(u.split(',')[1]),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return new Blob([a],{type:'image/png'})}
+const defiLast=()=>{try{const s=JSON.parse(localStorage.getItem('bt_defi')||'null');return s&&s.done?s:null}catch(_){return null}};
+function defiImgSave(){const s=defiLast();if(!s)return;gc('defi-image-enregistree','Image du défi enregistrée');const u=URL.createObjectURL(defiImg(s)),l=document.createElement('a');l.href=u;l.download='buzzhit-defi-'+s.d+'.png';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast("💾 Image enregistrée : ajoute-la à ta publication")}
+function defiImgShare(){const s=defiLast();if(!s)return;let f=null;try{f=new File([defiImg(s)],'buzzhit-defi-'+s.d+'.png',{type:'image/png'})}catch(_){}
+if(f&&navigator.canShare&&navigator.canShare({files:[f]})){gc('defi-image-partagee','Image du défi partagée');navigator.share({files:[f],text:'Défi du jour BuzzHit : fais mieux que moi 👉 https://buzzhit.fr/'}).catch(er=>{if(!er||er.name!='AbortError')defiImgSave()})}
+else{toast("Partage d'image impossible ici : l'image est enregistrée");defiImgSave()}}
 /* partage du score : Facebook n'accepte pas de texte tout prêt, donc le score est copié pour être collé dans la publication */
-function defiShare(w){let s=null;try{s=JSON.parse(localStorage.getItem('bt_defi')||'null')}catch(_){}if(!s||!s.done)return;const U='https://buzzhit.fr/',txt=`🎯 Défi du jour BuzzHit du ${defiFr(s.d)}\n${defiGrid(s.g)}\n${pts(s.score)} sur ${DEFI_N*5} ! Fais mieux que moi 👉 ${U}`;gc('defi-partage'+(w?'-'+w:''),'Score du défi partagé'+(w?' ('+w+')':''));
+function defiShare(w){let s=null;try{s=JSON.parse(localStorage.getItem('bt_defi')||'null')}catch(_){}if(!s||!s.done)return;const U='https://buzzhit.fr/',txt=`🎯 Défi du jour BuzzHit du ${defiFr(s.d)}${s.p?' · '+s.p:''}\n${defiGrid(s.g)}\n(${DEFI_LEG})\n${pts(s.score)} sur ${DEFI_N*5} ! Fais mieux que moi 👉 ${U}`;gc('defi-partage'+(w?'-'+w:''),'Score du défi partagé'+(w?' ('+w+')':''));
 const cp=(m,then)=>{const ok=()=>{toast(m);then&&then()};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(ok,()=>{prompt('Copie ton score :',txt);then&&then()});else{prompt('Copie ton score :',txt);then&&then()}};
 if(w=='fb'){cp('📋 Score copié : colle-le dans ta publication Facebook');window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(U),'_blank')}
-else if(w=='wa')window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+else if(w=='wa')window.open('https://api.whatsapp.com/send?text='+encodeURIComponent(txt),'_blank');/* adresse directe : le raccourci wa.me abîme les émojis en passant */
 else if(w=='cp'||!navigator.share)cp('📋 Score copié, colle-le où tu veux !');
 else navigator.share({text:txt}).catch(er=>{if(!er||er.name!='AbortError')cp('📋 Score copié, colle-le où tu veux !')})}
 function trainStart(){gc('solo-demarre','Entraînement solo démarré');clearInterval(TR.iv);defiOff();rmIframe();if(BL)window.removeEventListener('blur',BL);TR={on:true,played:[],iv:setInterval(trainTick,250),len:+(localStorage.getItem('bt_trlen')||10)};trainReset();keepAwake=true;wl(true);trainUI();trainNext()}
