@@ -75,7 +75,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.2.47';
+const VERSION='1.2.48';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -545,8 +545,10 @@ const defiCap=s=>`🎯 Défi du jour BuzzHit du ${defiFr(s.d)}${s.p?' : '+s.p+' 
 function defiImgShare(w){const s=defiLast();if(!s)return;const t=defiCap(s),fb=w=='fb';let f=null;try{f=new File([defiImg(s)],'buzzhit-defi-'+s.d+'.png',{type:'image/png'})}catch(_){}
 gc('defi-image-'+(w||'partage'),"Image du défi partagée"+(w?' ('+w+')':''));
 if(fb&&navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).catch(()=>{});/* Facebook n'apparaît pas dans la liste si on joint un texte à l'image : on n'envoie que l'image et le texte est copié pour être collé en légende */
-if(f&&navigator.canShare&&navigator.canShare({files:[f]})){if(fb)toast('Choisis Facebook dans la liste. Le texte est copié : colle-le en légende');else toast('Choisis WhatsApp dans la liste');navigator.share(fb?{files:[f]}:{files:[f],text:t}).catch(er=>{if(!er||er.name!='AbortError')defiImgSave()})}
-else{defiImgSave();toast("💾 Image enregistrée : ajoute-la à ta publication "+(fb?'Facebook':'WhatsApp'));window.open(fb?'https://www.facebook.com/':'https://web.whatsapp.com/','_blank')}}
+/* sur ordinateur, la fenêtre de partage de Windows ne propose pas Facebook : on passe directement par l'image enregistrée */
+const mob=/Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
+if(f&&navigator.canShare&&navigator.canShare({files:[f]})&&(mob||!fb)){if(fb)toast('Choisis Facebook dans la liste. Le texte est copié : colle-le en légende');else toast('Choisis WhatsApp dans la liste');navigator.share(fb?{files:[f]}:{files:[f],text:t}).catch(er=>{if(!er||er.name!='AbortError')defiImgSave()})}
+else{defiImgSave();toast(fb?"💾 Image enregistrée dans Téléchargements et texte copié : sur Facebook, clique sur « Photo/vidéo » et choisis l'image":"💾 Image enregistrée : ajoute-la à ta publication WhatsApp");window.open(fb?'https://www.facebook.com/':'https://web.whatsapp.com/','_blank')}}
 /* partage du score : Facebook n'accepte pas de texte tout prêt, donc le score est copié pour être collé dans la publication */
 function defiShare(w){let s=null;try{s=JSON.parse(localStorage.getItem('bt_defi')||'null')}catch(_){}if(!s||!s.done)return;const U='https://buzzhit.fr/',txt=`🎯 Défi du jour BuzzHit du ${defiFr(s.d)}${s.p?' · '+s.p:''}\n${defiGrid(s.g)}\n(${DEFI_LEG})\n${pts(s.score)} sur ${DEFI_N*5} ! Fais mieux que moi 👉 ${U}`;gc('defi-partage'+(w?'-'+w:''),'Score du défi partagé'+(w?' ('+w+')':''));
 const cp=(m,then)=>{const ok=()=>{toast(m);then&&then()};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(ok,()=>{prompt('Copie ton score :',txt);then&&then()});else{prompt('Copie ton score :',txt);then&&then()}};
