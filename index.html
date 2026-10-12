@@ -75,7 +75,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.2.24';
+const VERSION='1.2.25';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -533,9 +533,9 @@ else if(S.reveal)m=`<div class="big">${e(S.reveal.a)} — ${e(S.reveal.t)}</div>
 A.innerHTML=`${W}<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="row" style="margin-bottom:12px"><button onclick="joinHome()">🏠 Accueil</button></div><div class="card"><div class="m">${e(me)}</div><div id="cd" class="cd"></div>${S.bo&&['play','judge','wait'].includes(S.phase)?'<div class="cd">⭐ BONUS : année ×2</div>':''}${m}</div><div class="card"><h3>Ordre des buzz</h3>${S.buzz.length?`<ul>${S.buzz.map((n,i)=>`<li class="${S.phase=='judge'&&i==S.active?'on':''}">${i+1}. ${e(n)}</li>`).join('')}</ul>`:'<p class="m">—</p>'}</div>
 <div class="card"><h3>🏆 Classement</h3>${podium(Object.entries(S.scores).sort((a,b)=>b[1]-a[1]))}${S.teams?teamRows(S.scores,S.ps,S.tm):Object.entries(S.scores).sort((a,b)=>b[1]-a[1]).map(([n,s])=>`<div class="ld"><span>${e(n)}</span><b>${s}</b></div>`).join('')}</div>
 ${dbInfoBlock()}`;refreshDbInfo();if(yk&&$('yin')){$('yin').value=yk.v;if(yk.f)$('yin').focus()}}
-function loadTitres(){return fetch('titres.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():Promise.reject(new Error('HTTP '+x.status))).then(L=>{const del=JSON.parse(localStorage.getItem('bt_del')||'[]');const had=DB.length>0;let n=0,maj=0;L.forEach(x=>{const v=x.vid||vid(x.url||'');if(!v||!x.artist||!x.title||!x.year)return;const id=x.id||v;if(del.includes(id))return;
+function loadTitres(){return fetch('titres.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():Promise.reject(new Error('HTTP '+x.status))).then(L=>{const del=JSON.parse(localStorage.getItem('bt_del')||'[]');const had=DB.length>0;let n=0,maj=0,rm=0;const keep=new Set();L.forEach(x=>{const v=x.vid||vid(x.url||'');if(v)keep.add(v);if(x.id)keep.add(String(x.id))});L.forEach(x=>{const v=x.vid||vid(x.url||'');if(!v||!x.artist||!x.title||!x.year)return;const id=x.id||v;if(del.includes(id))return;
 const rec={id,vid:v,artist:x.artist,title:x.title,year:+x.year,genre:x.genre||'',langue:x.langue||'',verifie:x.verifie||'',vol:+x.vol||0,base:1};
-const existing=DB.find(d=>d.id==id||d.vid==v);if(existing){Object.assign(existing,rec);maj++}else{DB.push(rec);n++}});if(n||maj){save();if(peer&&tab=='b')hostUI()}if(n&&had){try{const o=newGet();localStorage.setItem('bt_newn',JSON.stringify({n:(o?o.n:0)+n,ts:Date.now(),views:NEWSEEN?1:0}))}catch(_){}if($('hm'))home()}LOADERR='';refreshDbInfo()}).catch(er=>{LOADERR=loadErrText(er);refreshDbInfo();setTimeout(()=>toast('⚠️ '+LOADERR),1500)})}
+const existing=DB.find(d=>d.id==id||d.vid==v);if(existing){Object.assign(existing,rec);maj++}else{DB.push(rec);n++}});if(keep.size)for(let i=DB.length-1;i>=0;i--){const t=DB[i];if(t.base&&!keep.has(String(t.id))&&!keep.has(t.vid)){DB.splice(i,1);rm++}}if(n||maj||rm){save();if(peer&&tab=='b')hostUI()}if(n&&had){try{const o=newGet();localStorage.setItem('bt_newn',JSON.stringify({n:(o?o.n:0)+n,ts:Date.now(),views:NEWSEEN?1:0}))}catch(_){}if($('hm'))home()}LOADERR='';refreshDbInfo()}).catch(er=>{LOADERR=loadErrText(er);refreshDbInfo();setTimeout(()=>toast('⚠️ '+LOADERR),1500)})}
 LOADED=loadTitres();
 function retryTitres(){if(!LOADERR)return;LOADED=loadTitres();baseDate().then(d=>{if(d){commitInfo=d;refreshDbInfo()}}).catch(()=>{})}
 window.addEventListener('online',()=>setTimeout(retryTitres,1500));setInterval(()=>{if(LOADERR&&navigator.onLine!==false)retryTitres()},30000);
