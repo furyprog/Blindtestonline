@@ -8,7 +8,7 @@
 <meta property="og:description" content="Gratuit, sans pub, sans compte. Scannez le QR code et jouez : plus de 1 500 titres, équipes, manches bonus et mode entraînement solo.">
 <meta property="og:image" content="https://buzzhit.fr/partage.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Logo BuzzHit">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="BuzzHit : le blind test où vos téléphones deviennent des buzzers"><meta name="twitter:description" content="Gratuit, sans pub, sans compte. Plus de 1 500 titres, équipes, mode solo."><meta name="twitter:image" content="https://buzzhit.fr/partage.jpg">
-<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#12101a"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="BuzzHit"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preload" as="image" href="BuzzHit.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#12101a"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="BuzzHit"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root{--bg:#12101a;--c:#221c38;--a:#ffb545;--r:#ff4d6d;--t:#f3efe8;--m:#9086ac}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font-family:-apple-system,"Segoe UI",sans-serif}
@@ -44,7 +44,7 @@ details>summary{cursor:pointer;font-weight:700;font-size:17px;list-style:none}de
 button.new{position:relative;overflow:hidden}
 button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:90px;transform:rotate(-45deg);background:#D92B2B;color:#fff;font-size:7px;font-weight:800;letter-spacing:.5px;line-height:1;text-align:center;padding:3px 0;box-shadow:0 1px 3px rgba(0,0,0,.45);pointer-events:none}
 </style></head><body>
-<div class="w" id="app"></div><div class="cr">Réalisation : Th.ROUSSEL<span id="ver" style="font-size:11px;opacity:.8"></span><br><button onclick="refreshApp()" style="background:none;border:0;color:inherit;font:inherit;text-decoration:underline;padding:6px;cursor:pointer;width:auto">🔄 Actualiser l'application</button><br><button onclick="$('cj').hidden=false" style="background:none;border:0;color:inherit;font:inherit;text-decoration:underline;padding:6px;cursor:pointer;width:auto">Comment jouer</button> · <button onclick="$('lg').hidden=false" style="background:none;border:0;color:inherit;font:inherit;text-decoration:underline;padding:6px;cursor:pointer;width:auto">Mentions légales et confidentialité</button><br><span style="font-size:11px">Mesure d'audience anonyme, sans cookie</span></div>
+<div class="w" id="app"><img class="logo" src="BuzzHit.png" alt="BuzzHit"><p class="m" style="text-align:center;margin:14px 0">⏳ Chargement en cours…</p></div><div class="cr">Réalisation : Th.ROUSSEL<span id="ver" style="font-size:11px;opacity:.8"></span><br><button onclick="refreshApp()" style="background:none;border:0;color:inherit;font:inherit;text-decoration:underline;padding:6px;cursor:pointer;width:auto">🔄 Actualiser l'application</button><br><button onclick="$('cj').hidden=false" style="background:none;border:0;color:inherit;font:inherit;text-decoration:underline;padding:6px;cursor:pointer;width:auto">Comment jouer</button> · <button onclick="$('lg').hidden=false" style="background:none;border:0;color:inherit;font:inherit;text-decoration:underline;padding:6px;cursor:pointer;width:auto">Mentions légales et confidentialité</button><br><span style="font-size:11px">Mesure d'audience anonyme, sans cookie</span></div>
 <div id="hlp" hidden><div class="box" style="max-width:520px;max-height:85vh;overflow:auto;text-align:left"><h3>❓ Aide du modérateur</h3>
 <p class="m"><b>Démarrer</b> : clique sur « Nouvelle partie ». Les joueurs ouvrent le lien (ou scannent le QR code) et choisissent un pseudo.</p>
 <p class="m"><b>Lancer la musique</b> : le titre suivant est prêt après chaque manche ; touche le carré noir pour le lancer. Si rien ne se passe : 🔁 Réessayer ou ⏭ Changer de titre.</p>
@@ -75,7 +75,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.2.22';
+const VERSION='1.2.24';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
