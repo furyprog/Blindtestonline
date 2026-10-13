@@ -27,9 +27,9 @@ li{list-style:none;padding:8px 10px;margin-bottom:6px;border-radius:10px;backgro
 #lo{position:absolute;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;font-size:13px;text-align:center;padding:10px;color:var(--t);z-index:2}
 .plw{position:relative;height:200px;overflow:hidden}.plmask{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;color:#8d86b5;font-size:15px;border-radius:8px}.plmask img{max-width:100%;max-height:100%;object-fit:contain;-webkit-mask-image:radial-gradient(circle closest-side,#000 84%,transparent 100%);mask-image:radial-gradient(circle closest-side,#000 84%,transparent 100%)}.plmask[hidden]{display:none}
 #pl.car{background:#000}#pl.car .box{max-width:none;width:100%;height:100%;border:0;border-radius:0;background:#000;display:flex;flex-direction:column;justify-content:center}#pl.car h3,#pl.car #plwl{display:none}#pl.car .plw{height:60px}#pl.car .big{font-size:30px;line-height:1.25;margin:24px 0}#pl.car .plmain button{font-size:22px;padding:30px 4px;min-width:0}#pl.car .plsec{margin-top:30px}
-#ov,#hlp,#pl,#rp,#fb,#sc,#cj,#lg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:20}
+#ov,#hlp,#pl,#rp,#fb,#sc,#cj,#lg,#dfb{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:20}
 #ov[hidden],#hlp[hidden],#pl[hidden],#rp[hidden],#fb[hidden],#sc[hidden],#cj[hidden],#lg[hidden]{display:none}
-#ov .box,#hlp .box,#pl .box,#rp .box,#fb .box,#sc .box,#cj .box,#lg .box{background:var(--c);border:1px solid #352d54;border-radius:16px;padding:20px;max-width:340px;text-align:center}
+#ov .box,#hlp .box,#pl .box,#rp .box,#fb .box,#sc .box,#cj .box,#lg .box,#dfb .box{background:var(--c);border:1px solid #352d54;border-radius:16px;padding:20px;max-width:340px;text-align:center}
 #ov .box p{margin:0 0 16px}
 .logo{display:block;margin:0 auto 10px;width:100%;max-width:220px;height:auto;border-radius:24px}.logo.sm{max-width:90px}
 .cd{font-size:26px;font-weight:800;text-align:center;color:var(--a);margin:4px 0}.cd:empty{display:none}#cd{min-height:32px}#cd:empty{display:block}#hlp .box p{margin:0 0 10px}#toast{display:none;pointer-events:none;position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2a2347;color:#fff;padding:10px 16px;border-radius:12px;z-index:40;font-size:14px;box-shadow:0 4px 16px #0008}#ov .box p{white-space:pre-line}
@@ -75,7 +75,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.2.49';
+const VERSION='1.2.50';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -548,7 +548,12 @@ if(fb&&navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.wr
 /* sur ordinateur, la fenêtre de partage de Windows ne propose pas Facebook : on passe directement par l'image enregistrée */
 const mob=/Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
 if(f&&navigator.canShare&&navigator.canShare({files:[f]})&&(mob||!fb)){if(fb)toast('Choisis Facebook dans la liste. Le texte est copié : colle-le en légende, puis tape @buzzhit et choisis la page pour l\'identifier');else toast('Choisis WhatsApp dans la liste');navigator.share(fb?{files:[f]}:{files:[f],text:t}).catch(er=>{if(!er||er.name!='AbortError')defiImgSave()})}
-else{defiImgSave();toast(fb?"💾 Image enregistrée dans Téléchargements et texte copié : sur Facebook, clique sur « Photo/vidéo » et choisis l'image, colle le texte puis tape @buzzhit pour identifier la page":"💾 Image enregistrée : ajoute-la à ta publication WhatsApp");window.open(fb?'https://www.facebook.com/':'https://web.whatsapp.com/','_blank')}}
+else if(fb){defiImgSave();defiFbBox(t+' @buzzhit #BuzzHit')}
+else{defiImgSave();toast("💾 Image enregistrée : ajoute-la à ta publication WhatsApp");window.open('https://web.whatsapp.com/','_blank')}}
+/* sur ordinateur, Facebook ne peut pas recevoir le texte tout seul : une fenêtre montre le texte à coller et les étapes, puis ouvre Facebook */
+function defiFbBox(t){let o=$('dfb');if(!o){o=document.createElement('div');o.id='dfb';document.body.appendChild(o)}
+o.innerHTML=`<div class="box" style="text-align:left"><p class="big" style="margin:0 0 8px;text-align:center">📘 Publier sur Facebook</p><p style="margin:0 0 6px">✅ L'image est enregistrée dans <b>Téléchargements</b>.</p><p style="margin:0 0 4px">✅ Ton message (déjà copié) :</p><textarea id="dfbt" readonly rows="4" style="width:100%;box-sizing:border-box;font-size:13px">${e(t)}</textarea><p style="margin:8px 0 4px"><b>Sur Facebook :</b></p><p style="margin:0 0 10px;font-size:14px;line-height:1.45">1. clique sur « Photo/vidéo » et choisis l'image ;<br>2. clique dans le texte et fais <b>Ctrl+V</b> ;<br>3. pour identifier la page, efface la dernière lettre de @buzzhit, retape-la et choisis BuzzHit dans la liste.</p><div class="row" style="flex-wrap:wrap"><button onclick="defiFbCopy()">📋 Recopier le message</button><button class="p" onclick="$('dfb').hidden=true;window.open('https://www.facebook.com/','_blank')">Ouvrir Facebook</button></div><button style="width:100%;margin-top:8px" onclick="$('dfb').hidden=true">Fermer</button></div>`;o.hidden=false}
+function defiFbCopy(){const a=$('dfbt');if(!a)return;const t=a.value,ok=()=>toast('📋 Message copié');if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(ok,()=>{a.select();try{document.execCommand('copy');ok()}catch(_){}});else{a.select();try{document.execCommand('copy');ok()}catch(_){}}}
 /* partage du score : Facebook n'accepte pas de texte tout prêt, donc le score est copié pour être collé dans la publication */
 function defiShare(w){let s=null;try{s=JSON.parse(localStorage.getItem('bt_defi')||'null')}catch(_){}if(!s||!s.done)return;const U='https://buzzhit.fr/',txt=`🎯 Défi du jour BuzzHit du ${defiFr(s.d)}${s.p?' · '+s.p:''}\n${defiGrid(s.g)}\n(${DEFI_LEG})\n${pts(s.score)} sur ${DEFI_N*5} ! Fais mieux que moi 👉 ${U}`;gc('defi-partage'+(w?'-'+w:''),'Score du défi partagé'+(w?' ('+w+')':''));
 const cp=(m,then)=>{const ok=()=>{toast(m);then&&then()};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(ok,()=>{prompt('Copie ton score :',txt);then&&then()});else{prompt('Copie ton score :',txt);then&&then()}};
