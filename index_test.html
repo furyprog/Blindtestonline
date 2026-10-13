@@ -32,7 +32,7 @@ li{list-style:none;padding:8px 10px;margin-bottom:6px;border-radius:10px;backgro
 #ov .box,#hlp .box,#pl .box,#rp .box,#fb .box,#sc .box,#cj .box,#lg .box{background:var(--c);border:1px solid #352d54;border-radius:16px;padding:20px;max-width:340px;text-align:center}
 #ov .box p{margin:0 0 16px}
 .logo{display:block;margin:0 auto 10px;width:100%;max-width:220px;height:auto;border-radius:24px}.logo.sm{max-width:90px}
-.cd{font-size:26px;font-weight:800;text-align:center;color:var(--a);margin:4px 0}.cd:empty{display:none}#cd{min-height:32px}#cd:empty{display:block}#hlp .box p{margin:0 0 10px}#toast{display:none;position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2a2347;color:#fff;padding:10px 16px;border-radius:12px;z-index:40;font-size:14px;box-shadow:0 4px 16px #0008}#ov .box p{white-space:pre-line}
+.cd{font-size:26px;font-weight:800;text-align:center;color:var(--a);margin:4px 0}.cd:empty{display:none}#cd{min-height:32px}#cd:empty{display:block}#hlp .box p{margin:0 0 10px}#toast{display:none;pointer-events:none;position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2a2347;color:#fff;padding:10px 16px;border-radius:12px;z-index:40;font-size:14px;box-shadow:0 4px 16px #0008}#ov .box p{white-space:pre-line}
 #vic{position:fixed;inset:0;z-index:30;background:rgba(18,16,26,.94);display:flex;align-items:center;justify-content:center;text-align:center}
 .vt{font-size:54px;font-weight:900;color:var(--a);animation:pop .8s ease-out both,pulse 1.2s ease-in-out .8s infinite}.vt small{font-size:22px;color:var(--t)}
 .conf span{position:fixed;top:-30px;font-size:28px;animation:fall 3s linear infinite}
@@ -75,7 +75,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.2.48';
+const VERSION='1.2.49';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -418,8 +418,8 @@ if(typeof TR!='undefined'&&TR.on){if(TR.phase!='play')return;if(st==2&&!TR.pf){T
 if(!g||g.phase!='play'||g.tk!='mus')return;
 if(st==2&&!g.pf){const el=n-g.t1;g.rem-=el;g.pos+=el/1000;clearTimeout(tm);g.pf=true;g.tEnd=n+g.rem;upd()}
 else if(st==1&&g.pf){g.pf=false;g.t1=n;g.tEnd=n+g.rem;clearTimeout(tm);tm=setTimeout(endRound,g.rem);upd()}}catch(_){}}
-function maskRefresh(){try{const solo=typeof TR!='undefined'&&TR.on,ph=solo?TR.phase:g.phase;setMask(maskTxt(ph=='ready'?'lancer':ph=='wait'?'reprendre':ph=='play'?'pause':'',solo));const m=document.querySelector('#ytw>div:not(#lo)');if(m)m.style.pointerEvents=(solo&&ph=='play')?'auto':'none'}catch(_){}}
-function maskTxt(v,solo){if(solo&&v!='lancer')return '';if(YS==1)return 'Touche ici<br>pour arrêter la musique';if(v=='lancer')return 'Touche ici<br>pour lancer la musique';if(v=='reprendre'||(v=='pause'&&YS==2))return 'Touche ici<br>pour reprendre la musique';return ''}
+function maskRefresh(){try{const solo=typeof TR!='undefined'&&TR.on,ph=solo?TR.phase:g.phase;setMask(maskTxt(ph=='ready'?'lancer':ph=='wait'?'reprendre':ph=='play'?'pause':solo&&$('sf')?'rejouer':'',solo));const m=document.querySelector('#ytw>div:not(#lo)');if(m)m.style.pointerEvents=(solo&&ph=='play')?'auto':'none'}catch(_){}}
+function maskTxt(v,solo){if(v=='rejouer')return YS==1?'':'Touche ici<br>pour réécouter';if(solo&&v!='lancer')return '';if(YS==1)return 'Touche ici<br>pour arrêter la musique';if(v=='lancer')return 'Touche ici<br>pour lancer la musique';if(v=='reprendre'||(v=='pause'&&YS==2))return 'Touche ici<br>pour reprendre la musique';return ''}
 function setMask(txt){const m=document.querySelector('#ytw>div:not(#lo)');if(!m)return;const k=txt||'';if(m.dataset.k===k)return;m.dataset.k=k;m.innerHTML=txt?`<span style="font-size:36px">👆</span><span style="font-size:15px;font-weight:700;line-height:1.25;padding:0 10px;text-align:center;color:#fff">${txt}</span>`:'🎵'}
 let lastSt=null,lastPh='';
 setInterval(()=>{try{if(!lastSt||typeof g=='undefined'||!g||!g.phase)return;lastSt.tl=g.tEnd?Math.max(0,g.tEnd-Date.now()):0;Object.values(conns).forEach(c=>{if(c.open)c.send({t:'s',s:lastSt})})}catch(_){}},2000);
@@ -544,11 +544,11 @@ function defiImgSave(){const s=defiLast();if(!s)return;gc('defi-image-enregistre
 const defiCap=s=>`🎯 Défi du jour BuzzHit du ${defiFr(s.d)}${s.p?' : '+s.p+' a fait':' :'} ${pts(s.score)} sur ${DEFI_N*5} ! Fais mieux que moi 👉 https://buzzhit.fr/`;
 function defiImgShare(w){const s=defiLast();if(!s)return;const t=defiCap(s),fb=w=='fb';let f=null;try{f=new File([defiImg(s)],'buzzhit-defi-'+s.d+'.png',{type:'image/png'})}catch(_){}
 gc('defi-image-'+(w||'partage'),"Image du défi partagée"+(w?' ('+w+')':''));
-if(fb&&navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).catch(()=>{});/* Facebook n'apparaît pas dans la liste si on joint un texte à l'image : on n'envoie que l'image et le texte est copié pour être collé en légende */
+if(fb&&navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t+' @buzzhit #BuzzHit').catch(()=>{});/* Facebook n'apparaît pas dans la liste si on joint un texte à l'image : on n'envoie que l'image et le texte est copié pour être collé en légende */
 /* sur ordinateur, la fenêtre de partage de Windows ne propose pas Facebook : on passe directement par l'image enregistrée */
 const mob=/Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
-if(f&&navigator.canShare&&navigator.canShare({files:[f]})&&(mob||!fb)){if(fb)toast('Choisis Facebook dans la liste. Le texte est copié : colle-le en légende');else toast('Choisis WhatsApp dans la liste');navigator.share(fb?{files:[f]}:{files:[f],text:t}).catch(er=>{if(!er||er.name!='AbortError')defiImgSave()})}
-else{defiImgSave();toast(fb?"💾 Image enregistrée dans Téléchargements et texte copié : sur Facebook, clique sur « Photo/vidéo » et choisis l'image":"💾 Image enregistrée : ajoute-la à ta publication WhatsApp");window.open(fb?'https://www.facebook.com/':'https://web.whatsapp.com/','_blank')}}
+if(f&&navigator.canShare&&navigator.canShare({files:[f]})&&(mob||!fb)){if(fb)toast('Choisis Facebook dans la liste. Le texte est copié : colle-le en légende, puis tape @buzzhit et choisis la page pour l\'identifier');else toast('Choisis WhatsApp dans la liste');navigator.share(fb?{files:[f]}:{files:[f],text:t}).catch(er=>{if(!er||er.name!='AbortError')defiImgSave()})}
+else{defiImgSave();toast(fb?"💾 Image enregistrée dans Téléchargements et texte copié : sur Facebook, clique sur « Photo/vidéo » et choisis l'image, colle le texte puis tape @buzzhit pour identifier la page":"💾 Image enregistrée : ajoute-la à ta publication WhatsApp");window.open(fb?'https://www.facebook.com/':'https://web.whatsapp.com/','_blank')}}
 /* partage du score : Facebook n'accepte pas de texte tout prêt, donc le score est copié pour être collé dans la publication */
 function defiShare(w){let s=null;try{s=JSON.parse(localStorage.getItem('bt_defi')||'null')}catch(_){}if(!s||!s.done)return;const U='https://buzzhit.fr/',txt=`🎯 Défi du jour BuzzHit du ${defiFr(s.d)}${s.p?' · '+s.p:''}\n${defiGrid(s.g)}\n(${DEFI_LEG})\n${pts(s.score)} sur ${DEFI_N*5} ! Fais mieux que moi 👉 ${U}`;gc('defi-partage'+(w?'-'+w:''),'Score du défi partagé'+(w?' ('+w+')':''));
 const cp=(m,then)=>{const ok=()=>{toast(m);then&&then()};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(ok,()=>{prompt('Copie ton score :',txt);then&&then()});else{prompt('Copie ton score :',txt);then&&then()}};
@@ -567,7 +567,8 @@ if(TR.len&&TR.n>=TR.len){trainFinal();return}
 if(TR.defi){const t=TR.list[TR.n];TR.cur=t;TR.phase='ready';TR.a=TR.t=false;TR.qa=TR.qt=null;TR.fast=false;trainRender();mk(t,0,trainGo);return}
 const b=DB.filter(matches);if(!b.length){TR.phase='idle';TR.cur=null;$('tb').innerHTML='<p class="m">Aucun titre ne correspond aux filtres choisis.</p>';return}
 let p=b.filter(x=>!TR.played.includes(x.id));if(!p.length){TR.played=[];p=b}const t=p[Math.random()*p.length|0];TR.played.push(t.id);TR.cur=t;TR.phase='ready';TR.a=TR.t=false;trainRender();mk(t,0,trainGo)}
-function trainReplay(){mk(TR.cur,0,()=>{if(BL)window.removeEventListener('blur',BL)});toast("👆 Touche le carré noir pour réécouter")}
+/* réécoute : le carré est remis au milieu de l'écran (il était souvent en bas, en partie caché) et la consigne s'affiche dans le carré lui-même */
+function trainReplay(){mk(TR.cur,0,()=>{if(BL)window.removeEventListener('blur',BL)},true);maskRefresh();const w=$('ytw');if(w&&w.scrollIntoView)w.scrollIntoView({block:'center',behavior:'smooth'})}
 function trainFinal(){if(TR.defi){defiFinal();return}gc('solo-serie-finie','Série solo terminée');TR.phase='final';rmIframe();TR.prev=TR.len?brGet(bkey()):null;TR.newRec=!!TR.len&&(!TR.prev||TR.score>TR.prev.pts);if(TR.newRec)brSet(bkey(),{pts:TR.score,date:new Date().toLocaleDateString('fr-FR')});snd(TR.newRec?'win':'ok');trainRender()}
 function trainGo(){if(TR.phase!='ready')return;if(BL)window.removeEventListener('blur',BL);gcT('solo',TR.cur);if(TR.defi)defiSave(TR.n);TR.phase='play';TR.end=Date.now()+SET.maxD*1000;TR.lt=0;trainRender()}
 function trainBuzz(){if(TR.phase!='play')return;if(TR.defi)TR.fast=SET.maxD*1000-((TR.pf?TR.rem:TR.end-Date.now()))<=DEFI_FAST*1000;rmIframe();TR.bz++;TR.phase='think';TR.end=Date.now()+SET.tRep*1000;TR.lt=0;snd('buzz');vib(80);trainRender()}
