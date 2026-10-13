@@ -75,7 +75,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.3.2';
+const VERSION='1.3.3';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -545,7 +545,7 @@ const defiPs=s=>{if(s&&!s.p){let v='';try{v=localStorage.getItem('bt_dpseudo')||
 const defiLast=()=>{try{const s=JSON.parse(localStorage.getItem('bt_defi')||'null');return s&&s.done?defiPs(s):null}catch(_){return null}};
 function defiImgSave(){const s=defiLast();if(!s)return;gc('defi-image-enregistree','Image du défi enregistrée');const u=URL.createObjectURL(defiImg(s)),l=document.createElement('a');l.href=u;l.download='buzzhit-defi-'+s.d+'.png';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast("💾 Image enregistrée : ajoute-la à ta publication")}
 /* partage de l'image : sur téléphone, la liste de partage s'ouvre avec l'image déjà jointe, il reste à toucher Facebook ou WhatsApp ; sur ordinateur, l'image est enregistrée et le site s'ouvre */
-const defiCap=s=>`🎯 Défi du jour BuzzHit du ${defiFr(s.d)}${s.p?' : '+s.p+' a fait':' :'} ${pts(s.score)} sur ${DEFI_N*5} ! Fais mieux que moi 👉 https://buzzhit.fr/`;
+const defiCap=s=>`🎯 Défi du jour BuzzHit du ${defiFr(s.d)} : j'ai fait ${pts(s.score)} sur ${DEFI_N*5} ! Fais mieux que moi 👉 https://buzzhit.fr/`;
 function defiImgShare(w){const s=defiLast();if(!s)return;const t=defiCap(s),fb=w=='fb';let f=null;try{f=new File([defiImg(s)],'buzzhit-defi-'+s.d+'.png',{type:'image/png'})}catch(_){}
 gc('defi-image-'+(w||'partage'),"Image du défi partagée"+(w?' ('+w+')':''));
 if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(fb?t+' @buzzhit #BuzzHit':t).catch(()=>{});/* WhatsApp sur ordinateur ne reprend pas non plus le texte joint : il est copié aussi *//* Facebook n'apparaît pas dans la liste si on joint un texte à l'image : on n'envoie que l'image et le texte est copié pour être collé en légende */
