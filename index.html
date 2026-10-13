@@ -82,7 +82,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.3.9';
+const VERSION='1.3.10';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -477,7 +477,7 @@ function defiOff(){if(TR.sv)Object.assign(SET,TR.sv)}
 function trainStop(){clearInterval(TR.iv);rmIframe();if(BL)window.removeEventListener('blur',BL);defiOff();TR={on:false};keepAwake=false;wl(false)}
 /* pseudo obligatoire avant un nouveau défi : il est gardé avec le score du jour et affiché sur l'image */
 function defiAsk(){trainStop();let v='';try{v=localStorage.getItem('bt_dpseudo')||JSON.parse(localStorage.getItem('bt_last')||'{}').n||''}catch(_){}
-A.innerHTML=`<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="card"><div class="big" style="text-align:center">🎯 Défi du jour</div><p class="m" style="text-align:center">Ton pseudo apparaîtra sur l'image de ton score.</p><input id="dpn" placeholder="Ton pseudo" maxlength="16" enterkeyhint="go" value="${e(v)}" onkeydown="if(event.key==='Enter')defiPseudoOk()"><button class="p" style="width:100%;margin-top:10px" onclick="defiPseudoOk()">▶ Commencer le défi</button><button style="width:100%;margin-top:8px" onclick="home()">← Accueil</button></div>`;const i=$('dpn');if(i&&!v)i.focus()}
+A.innerHTML=`<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="card"><div class="big" style="text-align:center">🎯 Défi du jour</div><label for="dpn" style="display:block;text-align:center;font-weight:700;margin:10px 0 6px">👤 Ton pseudo pour ce défi</label><input id="dpn" placeholder="Ton pseudo" maxlength="16" enterkeyhint="go" value="${e(v)}" onfocus="this.select()" onkeydown="if(event.key==='Enter')defiPseudoOk()" style="text-align:center;font-size:18px;font-weight:700"><p class="m" style="text-align:center;margin:6px 0 0">${v?'✏️ Touche le pseudo pour le changer. ':''}Il apparaîtra sur l'image de ton score.</p><button class="p" style="width:100%;margin-top:10px" onclick="defiPseudoOk()">▶ Commencer le défi</button><button style="width:100%;margin-top:8px" onclick="home()">← Accueil</button></div>`;const i=$('dpn');if(i&&!v)i.focus()}
 function defiPseudoOk(){const i=$('dpn'),v=i?i.value.trim().replace(/\s+/g,' '):'';if(!v){toast('✏️ Entre ton pseudo pour jouer le défi');if(i)i.focus();return}try{localStorage.setItem('bt_dpseudo',v)}catch(_){}defiStart(v)}
 function defiStart(p){const st=defiGet();if(st&&st.done){trainStop();defiDone(st);return}if(!st&&!p){defiAsk();return}
 trainStop();A.innerHTML='<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="card" id="dfl"><p class="m" style="text-align:center">🎯 Préparation du défi du jour…</p></div>';
