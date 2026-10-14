@@ -28,7 +28,7 @@ li{list-style:none;padding:8px 10px;margin-bottom:6px;border-radius:10px;backgro
 .plw{position:relative;height:200px;overflow:hidden}.plmask{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;color:#8d86b5;font-size:15px;border-radius:8px}.plmask img{max-width:100%;max-height:100%;object-fit:contain;-webkit-mask-image:radial-gradient(circle closest-side,#000 84%,transparent 100%);mask-image:radial-gradient(circle closest-side,#000 84%,transparent 100%)}.plmask[hidden]{display:none}
 #pl.car{background:#000}#pl.car .box{max-width:none;width:100%;height:100%;border:0;border-radius:0;background:#000;display:flex;flex-direction:column;justify-content:center}#pl.car h3,#pl.car #plwl{display:none}#pl.car .plw{height:60px}#pl.car .big{font-size:30px;line-height:1.25;margin:24px 0}#pl.car .plmain button{font-size:22px;padding:30px 4px;min-width:0}#pl.car .plsec{margin-top:30px}
 #ov,#hlp,#pl,#rp,#fb,#sc,#cj,#lg,#dfb{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:20}
-#ov[hidden],#hlp[hidden],#pl[hidden],#rp[hidden],#fb[hidden],#sc[hidden],#cj[hidden],#lg[hidden],#dfb[hidden]{display:none}
+#ov[hidden],#hlp[hidden],#pl[hidden],#rp[hidden],#fb[hidden],#sc[hidden],#cj[hidden],#lg[hidden],#dfb[hidden]{display:none}#sonv{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:30;padding:16px}#sonv[hidden]{display:none}#sonv .box{background:var(--c);border:1px solid #352d54;border-radius:16px;padding:20px;max-width:340px;text-align:center}
 #ov .box,#hlp .box,#pl .box,#rp .box,#fb .box,#sc .box,#cj .box,#lg .box,#dfb .box{background:var(--c);border:1px solid #352d54;border-radius:16px;padding:20px;max-width:340px;text-align:center}
 #ov .box p{margin:0 0 16px}
 .logo{display:block;margin:0 auto 10px;width:100%;max-width:220px;height:auto;border-radius:24px}.logo.sm{max-width:90px}
@@ -82,7 +82,7 @@ button.new::after{content:'NOUVEAU';position:absolute;top:10px;left:-28px;width:
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='1.3.16';
+const VERSION='1.3.17';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -701,6 +701,16 @@ if(p!=='granted'){toast(p==='denied'?"🔕 Les notifications sont bloquées pour
 try{const sub=await rapAbo(true);await rapPost('inscrire',sub.endpoint);localStorage.setItem('bt_rappel','1');localStorage.setItem('bt_rappel_ep',sub.endpoint);const st=defiGet();if(st&&st.done)rapPost('joue',sub.endpoint).catch(()=>{});
 gc('rappel-active','Rappel du défi activé');toast('🔔 C\'est noté : rappel chaque jour à 18 h si tu n\'as pas encore joué',5000)}catch(_){toast("Le rappel n'a pas pu être activé, réessaie plus tard",5000)}rapMaj()}
 async function rapStop(){try{const sub=await rapAbo(false);if(sub){await rapPost('desinscrire',sub.endpoint).catch(()=>{});await sub.unsubscribe()}}catch(_){}try{localStorage.removeItem('bt_rappel');localStorage.removeItem('bt_rappel_ep')}catch(_){}gc('rappel-arrete','Rappel du défi arrêté');toast('🔕 Rappel quotidien arrêté');rapMaj()}
+/* au lancement : rappel de monter le son (un site ne peut pas lire le volume de l'appareil) + son d'essai.
+   Le son d'essai passe par un lecteur audio, comme la musique : il n'est pas coupé par le mode silencieux de l'iPhone */
+let sonUrl='';
+function sonWav(){if(sonUrl)return sonUrl;const r=22050,N=[[523,.15],[659,.15],[784,.15],[1047,.5]],len=Math.round(r*N.reduce((a,n)=>a+n[1],0)),b=new DataView(new ArrayBuffer(44+len*2)),w=(o,t)=>{for(let i=0;i<t.length;i++)b.setUint8(o+i,t.charCodeAt(i))};
+w(0,'RIFF');b.setUint32(4,36+len*2,true);w(8,'WAVEfmt ');b.setUint32(16,16,true);b.setUint16(20,1,true);b.setUint16(22,1,true);b.setUint32(24,r,true);b.setUint32(28,r*2,true);b.setUint16(32,2,true);b.setUint16(34,16,true);w(36,'data');b.setUint32(40,len*2,true);
+let k=0;for(const[f,d]of N){const n=Math.round(r*d);for(let i=0;i<n&&k<len;i++,k++){const env=Math.min(1,i/200)*Math.exp(-3*i/n);b.setInt16(44+k*2,Math.round(Math.sin(2*Math.PI*f*i/r)*env*26000),true)}}
+return sonUrl=URL.createObjectURL(new Blob([b],{type:'audio/wav'}))}
+function sonTest(){try{const a=new Audio(sonWav());a.volume=1;a.play().catch(()=>snd('win'))}catch(_){snd('win')}gc('son-test','Son testé')}
+function sonAvert(){let o=$('sonv');if(!o){o=document.createElement('div');o.id='sonv';document.body.appendChild(o)}
+o.innerHTML=`<div class="box" role="dialog" aria-label="Monte le son"><div style="font-size:44px;line-height:1">🔊</div><div class="big" style="margin:6px 0">Monte le son !</div><p class="m" style="margin:0 0 12px">BuzzHit, c'est de la musique : vérifie que le son de ton téléphone ou de ton ordinateur est assez fort.</p><button class="p" style="width:100%" onclick="sonTest()">🎵 Tester le son</button><button style="width:100%;margin-top:8px" onclick="$('sonv').hidden=true">✅ C'est bon</button></div>`;o.hidden=false}
 /* résultat du défi (pseudo + score) envoyé pour le podium du lendemain ; renvoyé au prochain lancement si le réseau manquait */
 const resId=()=>{try{let i=localStorage.getItem('bt_did');if(!i){i=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join('');localStorage.setItem('bt_did',i)}return i}catch(_){return ''}};
 function resEnvoi(){if(!RAPPEL_URL)return;let s=null;try{s=JSON.parse(localStorage.getItem('bt_defi')||'null');if(!s||!s.done||!s.p||localStorage.getItem('bt_defienv')===s.d)return}catch(_){return}const id=resId();if(!id)return;
@@ -710,7 +720,7 @@ function rapJoue(){if(!rapOk()||!rapActif())return;rapAbo(false).then(sub=>sub&&
 /* « Actualiser l'application » efface l'abonnement du téléphone : il est refait sans rien demander au prochain lancement */
 async function rapSync(){if(!rapOk()||!rapActif())return;try{const sub=await rapAbo(true);if(sub.endpoint!==localStorage.getItem('bt_rappel_ep')){await rapPost('inscrire',sub.endpoint);localStorage.setItem('bt_rappel_ep',sub.endpoint);const st=defiGet();if(st&&st.done)rapPost('joue',sub.endpoint).catch(()=>{})}}catch(_){}}
 
-home();setTimeout(resEnvoi,2000);
+home();setTimeout(resEnvoi,2000);sonAvert();
 /* lien du rappel (notification) : ouvre directement le défi du jour */
 if(/[?&]defi=1/.test(location.search)){history.replaceState(null,'',location.pathname+location.hash);setTimeout(()=>{try{defiStart()}catch(_){}},300)}
 
