@@ -58,13 +58,14 @@ function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(
 /* Facebook n'accepte pas qu'un site publie à ta place : le téléphone ouvre son menu de partage avec l'image (le texte est copié, à coller),
    sur PC l'image est enregistrée, le texte copié et la page Facebook ouverte */
 const mobile=()=>/Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
-function blobPng(){const u=$('cv').toDataURL('image/png'),b=atob(u.split(',')[1]),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return new Blob([a],{type:'image/png'})}
+/* en JPG (format photo) : certaines applis, comme Meta Business Suite, refusent les images PNG partagées */
+function blobJpg(){const u=$('cv').toDataURL('image/jpeg',.92),b=atob(u.split(',')[1]),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return new Blob([a],{type:'image/jpeg'})}
 function publierFb(){if(!D||!visibles().length){toast('Personne à mettre sur le podium ce jour-là');return}
-const t=$('txt').value,n=`podium-${D.d}.png`,b=blobPng();try{navigator.clipboard.writeText(t).catch(()=>{})}catch(_){}
-let f=null;try{f=new File([b],n,{type:'image/png'})}catch(_){}
+const t=$('txt').value,n=`podium-${D.d}.jpg`,b=blobJpg();try{navigator.clipboard.writeText(t).catch(()=>{})}catch(_){}
+let f=null;try{f=new File([b],n,{type:'image/jpeg'})}catch(_){}
 if(mobile()&&f&&navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f]}).then(()=>toast('📋 Le texte est copié : colle-le dans la publication (appui long > Coller)'),()=>{});toast('Choisis Facebook, puis colle le texte (appui long > Coller)');return}
 dl(b,n);$('fbnom').textContent=n;$('fbaide').hidden=false;window.open('https://www.facebook.com/buzzhit','_blank')}
-function enregistrer(){$('cv').toBlob(b=>dl(b,`podium-${D.d}.png`),'image/png')}
+function enregistrer(){dl(blobJpg(),`podium-${D.d}.jpg`)}
 
 /* ---- image du podium (1600 x 900, même fond que l'image du score) ---- */
 function dessiner(){const c=$('cv'),x=c.getContext('2d'),W=1600,H=900,F='"Baloo 2","Segoe UI",Roboto,Arial,sans-serif',S=n=>'700 '+n+'px "Kalam",cursive',Y='#FFD21F',v=visibles();
