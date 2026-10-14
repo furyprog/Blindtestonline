@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>BuzzHit · Podium du Défi</title>
+<link rel="icon" href="BuzzHit.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Kalam:wght@700&display=swap">
+<style>
+:root{--bg:#0b0a2a;--c:#17154a;--t:#fff;--m:#b9b6d6;--a:#ffd21f;--r:#ff3fd0}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:16px/1.4 "Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:16px}h1{font-size:24px;margin:8px 0 12px;text-align:center}
+.card{background:var(--c);border-radius:14px;padding:14px;margin:12px 0}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,button{font:inherit;border-radius:10px;border:1px solid #3a3780;background:#0f0d36;color:var(--t);padding:9px 12px}
+button{cursor:pointer;background:#2a2770}button.p{background:var(--r);border-color:var(--r);font-weight:700}
+.m{color:var(--m)}#err{color:#ff8080;font-weight:700}canvas{width:100%;height:auto;border-radius:10px;display:block}
+table{width:100%;border-collapse:collapse;font-size:15px}th,td{padding:6px 4px;border-bottom:1px solid #2c2a66;text-align:left}td.n{text-align:right}
+tr.x td{opacity:.4;text-decoration:line-through}textarea{width:100%;min-height:110px;font:inherit;border-radius:10px;background:#0f0d36;color:var(--t);border:1px solid #3a3780;padding:10px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000c;padding:10px 16px;border-radius:10px;pointer-events:none;display:none}
+</style></head><body><main>
+<h1>🏆 Podium du Défi du jour</h1>
+<div class="card"><div class="row"><input id="mdp" type="password" placeholder="Mot de passe" autocomplete="current-password" style="flex:1 1 180px"><input id="jour" type="date"><button class="p" onclick="charger()">Afficher</button></div>
+<p class="m" style="margin:8px 0 0">Page réservée à l'éditeur. Par défaut, elle affiche le défi d'hier. Le mot de passe est retenu sur cet appareil.</p><p id="err"></p></div>
+<div id="res" hidden>
+<div class="card"><canvas id="cv" width="1600" height="900"></canvas>
+<div class="row" style="margin-top:10px"><button class="p" onclick="enregistrer()">💾 Enregistrer l'image</button><button onclick="copier()">📋 Copier le texte</button><button onclick="csv()">📄 Télécharger le tableau (Excel)</button></div>
+<p class="m" style="margin:10px 0 4px">Texte à publier avec l'image :</p><textarea id="txt"></textarea></div>
+<div class="card"><p id="nb" style="margin:0 0 8px;font-weight:700"></p><p class="m" style="margin:0 0 8px">Décoche « Afficher » pour retirer un pseudo du podium (pseudo déplacé, doublon, triche). À score égal, le joueur qui a le plus de buzz rapides passe devant, puis celui qui a fini le premier.</p>
+<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Pseudo</th><th class="n">Points</th><th class="n">Artistes</th><th class="n">Titres</th><th class="n">Années</th><th class="n">Buzz rapides</th><th>Heure</th><th>Afficher</th></tr></thead><tbody id="tb"></tbody></table></div></div>
+</div>
+<div id="toast"></div>
+</main>
+<script>
+const API=new URLSearchParams(location.search).get('api')||'https://buzzhit-rappel.progfury.workers.dev';
+const DQR='1111111001101100001111111,1000001001110100001000001,1011101001101110001011101,1011101011110100001011101,1011101000010010001011101,1000001010111110001000001,1111111010101010101111111,0000000011101011100000000,0110001000101110101101000,1110110010101001011101011,1010101010000111101101101,0110110010101000110001000,0101011110101111001100001,0101000111000001111100011,1100011100101101010001101,0011000110100010001111000,1110111010011010111110010,0000000011001000100010001,1111111001111010101010001,1000001000111001100010011,1011101000010111111110011,1011101000101000010010110,1011101011111101000111011,1000001011001110101110000,1111111001010100110001001'.split(',');
+const $=i=>document.getElementById(i),esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const fr=d=>String(d).split('-').reverse().join('/'),pts=n=>n+' point'+(n>1?'s':'');
+const jourParis=()=>new Date().toLocaleDateString('fr-CA',{timeZone:'Europe/Paris'});
+const veille=j=>{const t=new Date(j+'T12:00:00Z');t.setUTCDate(t.getUTCDate()-1);return t.toISOString().slice(0,10)};
+const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',3000)};
+const BG=new Image();BG.src='defi-fond.jpg';
+let D=null;
+try{$('mdp').value=localStorage.getItem('bt_pod_mdp')||''}catch(_){}
+$('jour').value=veille(jourParis());$('jour').max=jourParis();
+const api=(c,o={})=>fetch(API+c,{...o,headers:{'Authorization':'Bearer '+$('mdp').value.trim(),'Content-Type':'application/json'}}).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.erreur||'Erreur '+r.status);return j});
+async function charger(){$('err').textContent='';try{localStorage.setItem('bt_pod_mdp',$('mdp').value.trim())}catch(_){}
+try{D=await api('/admin/jour?j='+encodeURIComponent($('jour').value));afficher()}catch(e){$('res').hidden=true;$('err').textContent=e.message==='Failed to fetch'?'Le service Cloudflare ne répond pas.':e.message}}
+const visibles=()=>D.liste.filter(r=>!r.cache);
+function afficher(){const v=visibles();$('res').hidden=false;
+$('nb').textContent=`${v.length} joueur${v.length>1?'s':''} le ${fr(D.d)}`+(D.liste.length>v.length?` (+ ${D.liste.length-v.length} retiré${D.liste.length-v.length>1?'s':''})`:'');
+let k=0;$('tb').innerHTML=D.liste.map(r=>`<tr class="${r.cache?'x':''}"><td>${r.cache?'':++k}</td><td>${esc(r.p)}</td><td class="n"><b>${r.score}</b></td><td class="n">${r.fa}</td><td class="n">${r.ft}</td><td class="n">${r.fy}</td><td class="n">${r.fb}</td><td>${new Date(r.t).toLocaleTimeString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'})}</td><td><input type="checkbox" ${r.cache?'':'checked'} onchange="masquer('${r.id}',!this.checked)"></td></tr>`).join('')||'<tr><td colspan="9" class="m">Personne n\'a joué ce jour-là.</td></tr>';
+dessiner();texte()}
+async function masquer(id,c){try{await api('/admin/masquer',{method:'POST',body:JSON.stringify({d:D.d,id,cache:c?1:0})});D.liste.find(r=>r.id===id).cache=c?1:0;afficher()}catch(e){toast(e.message);afficher()}}
+function texte(){const v=visibles(),M=['🥇','🥈','🥉'];
+$('txt').value=v.length?`🏆 Podium du Défi du jour BuzzHit du ${fr(D.d)}\n\n${v.slice(0,3).map((r,i)=>`${M[i]} ${r.p} : ${pts(r.score)}`).join('\n')}\n\nBravo à vous ! ${v.length} joueur${v.length>1?'s ont':' a'} relevé le défi. À ton tour aujourd'hui 👉 https://buzzhit.fr/\n#BuzzHit #BlindTest #DefiDuJour`:''}
+function copier(){const t=$('txt');t.select();(navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).then(()=>toast('📋 Texte copié'),()=>{document.execCommand('copy');toast('📋 Texte copié')})}
+function csv(){const l=[['Rang','Pseudo','Points','Artistes','Titres','Années','Buzz rapides','Heure','Retiré']];let k=0;D.liste.forEach(r=>l.push([r.cache?'':++k,r.p,r.score,r.fa,r.ft,r.fy,r.fb,new Date(r.t).toLocaleTimeString('fr-FR',{timeZone:'Europe/Paris'}),r.cache?'oui':'']));
+const b=new Blob(['﻿'+l.map(x=>x.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\r\n')],{type:'text/csv'});dl(b,`defi-${D.d}.csv`)}
+function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+function enregistrer(){$('cv').toBlob(b=>dl(b,`podium-${D.d}.png`),'image/png')}
+
+/* ---- image du podium (1600 x 900, même fond que l'image du score) ---- */
+function dessiner(){const c=$('cv'),x=c.getContext('2d'),W=1600,H=900,F='"Baloo 2","Segoe UI",Roboto,Arial,sans-serif',S=n=>'700 '+n+'px "Kalam",cursive',Y='#FFD21F',v=visibles();
+const glow=(col,b)=>{x.shadowColor=col;x.shadowBlur=b};
+const under=(X,Yy,w,col,lw)=>{x.save();x.strokeStyle=col;x.lineWidth=lw||8;x.lineCap='round';x.beginPath();x.moveTo(X,Yy);x.quadraticCurveTo(X+w*.5,Yy+12,X+w,Yy-8);x.stroke();x.restore()};
+const rr=(X,Yy,w,h,r)=>{x.beginPath();x.roundRect?x.roundRect(X,Yy,w,h,r):x.rect(X,Yy,w,h)};
+const fit=(t,max,fs,fn)=>{x.font=fn(fs);while(fs>24&&x.measureText(t).width>max){fs-=2;x.font=fn(fs)}return fs};
+x.clearRect(0,0,W,H);if(BG.complete&&BG.naturalWidth)x.drawImage(BG,0,0,W,H);else{x.fillStyle='#070634';x.fillRect(0,0,W,H)}
+/* titre + date */
+x.save();x.translate(500,150);x.rotate(-.03);x.textAlign='left';x.fillStyle='#fff';glow('rgba(0,0,0,.6)',8);x.font=S(96);x.fillText('Podium du défi',0,0);x.shadowBlur=0;under(10,26,x.measureText('Podium du défi').width-20,Y,9);x.restore();
+x.save();x.translate(1400,112);x.rotate(-.06);const g=x.createLinearGradient(-160,0,160,0);g.addColorStop(0,'#ff2fb0');g.addColorStop(1,'#a43cff');rr(-160,-44,320,84,20);x.fillStyle=g;x.fill();x.fillStyle='#fff';x.font='800 52px '+F;x.textAlign='center';x.fillText(fr(D.d),0,18);x.restore();
+/* marches : 2e à gauche, 1re au centre, 3e à droite */
+const M=[{i:0,cx:1020,top:470,c1:'#fff59a',c2:'#ffb000',l:'#ffe066'},{i:1,cx:730,top:545,c1:'#ffffff',c2:'#9aa3c7',l:'#dfe6ff'},{i:2,cx:1310,top:595,c1:'#ffc58a',c2:'#c0662b',l:'#ffb070'}],bw=270,bot=760;
+for(const m of M){const r=v[m.i],X=m.cx-bw/2;
+x.save();rr(X,m.top,bw,bot-m.top,18);const gg=x.createLinearGradient(0,m.top,0,bot);gg.addColorStop(0,m.c1);gg.addColorStop(1,m.c2);x.fillStyle=gg;glow(m.l,30);x.fill();x.shadowBlur=0;x.lineWidth=4;x.strokeStyle='rgba(255,255,255,.85)';x.stroke();x.restore();
+x.save();x.fillStyle='rgba(26,16,64,.85)';x.font='800 120px '+F;x.textAlign='center';x.fillText(String(m.i+1),m.cx,m.top+130);x.restore();
+if(!r)continue;
+/* médaille */
+const my=m.top-150;x.save();x.beginPath();x.arc(m.cx,my,30,0,7);x.fillStyle=m.c2;glow(m.l,18);x.fill();x.shadowBlur=0;x.lineWidth=5;x.strokeStyle=m.c1;x.stroke();x.fillStyle='#1a1040';x.font='800 34px '+F;x.textAlign='center';x.fillText(String(m.i+1),m.cx,my+12);x.restore();
+/* pseudo + points */
+x.save();x.textAlign='center';x.fillStyle='#fff';glow('rgba(0,0,0,.8)',10);fit(r.p,bw+10,m.i?52:60,S);x.fillText(r.p,m.cx,m.top-58);x.restore();
+x.save();x.textAlign='center';x.fillStyle=Y;glow('rgba(255,180,0,.7)',14);x.font='800 '+(m.i?40:46)+'px '+F;x.fillText(pts(r.score),m.cx,m.top-14);x.restore()}
+if(!v.length){x.save();x.textAlign='center';x.fillStyle='#fff';x.font=S(60);x.fillText('Personne ce jour-là…',1020,400);x.restore()}
+/* 4e et 5e */
+const s=v.slice(3,5).map((r,k)=>`${k+4}e ${r.p} (${r.score})`).join('   ·   ');
+if(s){x.save();x.textAlign='center';x.fillStyle='#fff';glow('rgba(0,0,0,.8)',8);fit(s,860,34,n=>'800 '+n+'px '+F);x.fillText(s,1020,808);x.restore()}
+/* nombre de joueurs + appel à jouer */
+x.save();x.translate(890,862);x.rotate(-.02);x.textAlign='center';glow('rgba(0,0,0,.8)',10);x.fillStyle='#fff';x.font=S(46);const a1=`${v.length} joueur${v.length>1?'s':''} · À ton tour sur `,a2='buzzhit.fr',w1=x.measureText(a1).width,w2=x.measureText(a2).width,X0=-(w1+w2)/2;x.textAlign='left';x.fillText(a1,X0,0);x.fillStyle=Y;x.fillText(a2,X0+w1,0);x.restore();
+/* QR code (le même que sur l'image du score) */
+{const n=DQR.length,m=4,qz=3,qs=(n+2*qz)*m,qx=1452,qy=742;x.save();rr(qx-8,qy-8,qs+16,qs+16,14);x.fillStyle='#fff';x.fill();x.restore();x.fillStyle='#000';for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(DQR[r][k]=='1')x.fillRect(qx+(qz+k)*m,qy+(qz+r)*m,m,m)}}
+BG.onload=()=>{if(D)dessiner()};try{Promise.all(['800 40px "Baloo 2"','700 40px Kalam'].map(f=>document.fonts.load(f))).then(()=>{if(D)dessiner()})}catch(_){}
+if($('mdp').value)charger();
+</script></body></html>
