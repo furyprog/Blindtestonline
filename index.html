@@ -96,7 +96,7 @@ body.tvb .w{max-width:none;padding:1.5vw 2vw}body.tvb .cr{display:none}
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='2.0.14';
+const VERSION='2.0.15';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -631,7 +631,7 @@ const dnorm=x=>String(x||'').trim().toLowerCase();
 function defiChoices(list,L,d){const a=L.slice().sort((x,y)=>x.id<y.id?-1:x.id>y.id?1:0);return list.map((t,i)=>{const r=defiRng(d+'#qcm'+i),pick=(k)=>{const seen=new Set([dnorm(t[k])]),out=[t[k]],tries=[a.filter(x=>x.langue==t.langue),a];for(const P of tries){let n=0;while(out.length<4&&n++<400){const x=P[Math.floor(r()*P.length)];if(x&&!seen.has(dnorm(x[k]))){seen.add(dnorm(x[k]));out.push(x[k])}}if(out.length>=4)break}for(let j=out.length-1;j>0;j--){const m=Math.floor(r()*(j+1));[out[j],out[m]]=[out[m],out[j]]}return out};return Object.assign({},t,{qa:pick('artist'),qt:pick('title')})})}
 function defiQ(k,i){if(!TR.defi||TR.phase!='think'||TR['q'+k]!=null)return;TR['q'+k]=i;if(TR.qa!=null&&TR.qt!=null)defiCheck();else trainRender()}
 function defiCheck(){const t=TR.cur;TR.phase='reveal';TR.a=TR.qa!=null&&dnorm(t.qa[TR.qa])==dnorm(t.artist);TR.t=TR.qt!=null&&dnorm(t.qt[TR.qt])==dnorm(t.title);TR.end=TR.a||TR.t?Date.now()+SET.tAnn*1000:0;TR.lt=0;TR.lk=0;trainRender()}
-function defiPool(){return fetch('titres.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():Promise.reject()).then(L=>L.map(x=>{const v=x.vid||vid(x.url||'');return v&&x.artist&&x.title&&x.year?{id:String(x.id||v),vid:v,artist:x.artist,title:x.title,year:+x.year,genre:x.genre||'',langue:x.langue||'',verifie:x.verifie||'',vol:+x.vol||0,base:1}:null}).filter(Boolean)).catch(()=>DB.filter(t=>t.base).map(t=>Object.assign({},t,{id:String(t.id)})))}
+function defiPool(){return fetch('titres.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():Promise.reject()).then(L=>L.map(x=>{const v=x.vid||vid(x.url||'');return v&&x.artist&&x.title&&x.year?{id:String(x.id||v),vid:v,artist:x.artist,title:x.title,year:+x.year,genre:x.genre||'',langue:x.langue||'',verifie:x.verifie||'',vol:+x.vol||0,defi:x.defi||'',base:1}:null}).filter(Boolean)).catch(()=>DB.filter(t=>t.base).map(t=>Object.assign({},t,{id:String(t.id)})))}
 function defiOff(){if(TR.sv)Object.assign(SET,TR.sv)}
 function trainStop(){clearInterval(TR.iv);vStop();rmIframe();if(BL)window.removeEventListener('blur',BL);defiOff();TR={on:false};keepAwake=false;wl(false)}
 /* pseudo obligatoire avant un nouveau défi : il est gardé avec le score du jour et affiché sur l'image */
@@ -640,7 +640,7 @@ A.innerHTML=`<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="ca
 function defiPseudoOk(){const i=$('dpn'),v=i?i.value.trim().replace(/\s+/g,' '):'';if(!v){toast('✏️ Entre ton pseudo pour jouer le défi');if(i)i.focus();return}try{localStorage.setItem('bt_dpseudo',v)}catch(_){}defiStart(v)}
 function defiStart(p){const st=defiGet();if(st&&st.done){trainStop();defiDone(st);return}if(!st&&!p){defiAsk();return}
 trainStop();A.innerHTML='<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="card" id="dfl"><p class="m" style="text-align:center">🎯 Préparation du défi du jour…</p></div>';
-defiPool().then(L=>{if(!$('dfl'))return;const d=st?st.d:defiDay(),list=defiChoices(defiPick(L,d),L,d);if(list.length<DEFI_N){toast('⚠️ Base de titres indisponible, réessaie plus tard');trainStart();return}
+defiPool().then(L=>{if(!$('dfl'))return;const d=st?st.d:defiDay();/* un titre ajouté avec « defi »: "AAAA-MM-JJ" n'entre dans le défi qu'à partir de ce jour : ajouter des titres en journée ne change pas le défi du jour */L=L.filter(t=>!t.defi||String(t.defi)<=d);const list=defiChoices(defiPick(L,d),L,d);if(list.length<DEFI_N){toast('⚠️ Base de titres indisponible, réessaie plus tard');trainStart();return}
 const s=st||{d,p,n:0,score:0,fa:0,ft:0,fy:0,bz:0,ms:0,fb:0,g:[]};if(s.open!=null){s.g[s.open]=0;s.n=s.open+1;s.ms=(s.ms||0)+1;s.open=null;defiPut(s)}
 if(!st){gc('defi-demarre','Défi du jour démarré');defiPut(s)}
 TR={on:true,defi:1,dd:d,dp:s.p||'',list,played:[],iv:setInterval(trainTick,250),len:DEFI_N,sv:Object.fromEntries(Object.keys(DEFI_SET).map(k=>[k,SET[k]]))};Object.assign(SET,DEFI_SET);trainReset();
@@ -845,7 +845,7 @@ A.innerHTML=`${W}<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class
 <div class="card"><h3>${avant(S.phase,S.reveal,S.scores)?'👥 Joueurs connectés ('+(S.pl||Object.keys(S.scores)).length+')':'🏆 Classement'}</h3>${avant(S.phase,S.reveal,S.scores)?connHTML(S.pl||Object.keys(S.scores),S.tm):`${podium(S.fo||Object.entries(S.scores).sort((a,b)=>b[1]-a[1]),S.ew)}${S.teams?teamRows(S.scores,S.ps,S.tm):(S.fo||Object.entries(S.scores).sort((a,b)=>b[1]-a[1])).map(([n,s])=>`<div class="ld"><span>${e(n)}${lives(n,S.el,S.er,S.out)}</span><b>${s}</b></div>`).join('')}${S.phase=='over'&&podOk()?podBtns():''}`}</div>
 ${dbInfoBlock()}`;refreshDbInfo();yk.forEach(k=>{const el=$(k.i);if(el){el.value=k.v;if(k.f)el.focus()}})}
 function loadTitres(){return fetch('titres.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():Promise.reject(new Error('HTTP '+x.status))).then(L=>{const del=JSON.parse(localStorage.getItem('bt_del')||'[]');const had=DB.length>0;let n=0,maj=0,rm=0;const keep=new Set();L.forEach(x=>{const v=x.vid||vid(x.url||'');if(v)keep.add(v);if(x.id)keep.add(String(x.id))});L.forEach(x=>{const v=x.vid||vid(x.url||'');if(!v||!x.artist||!x.title||!x.year)return;const id=x.id||v;if(del.includes(id))return;
-const rec={id,vid:v,artist:x.artist,title:x.title,year:+x.year,genre:x.genre||'',langue:x.langue||'',verifie:x.verifie||'',vol:+x.vol||0,base:1};
+const rec={id,vid:v,artist:x.artist,title:x.title,year:+x.year,genre:x.genre||'',langue:x.langue||'',verifie:x.verifie||'',vol:+x.vol||0,defi:x.defi||'',base:1};
 const existing=DB.find(d=>d.id==id||d.vid==v);if(existing){Object.assign(existing,rec);maj++}else{DB.push(rec);n++}});if(keep.size)for(let i=DB.length-1;i>=0;i--){const t=DB[i];if(t.base&&!keep.has(String(t.id))&&!keep.has(t.vid)){DB.splice(i,1);rm++}}if(n||maj||rm){save();if(peer&&tab=='b')hostUI()}if(n&&had){try{const o=newGet();localStorage.setItem('bt_newn',JSON.stringify({n:(o?o.n:0)+n,ts:Date.now(),views:NEWSEEN?1:0}))}catch(_){}if($('hm'))home()}LOADERR='';refreshDbInfo()}).catch(er=>{LOADERR=loadErrText(er);refreshDbInfo();setTimeout(()=>toast('⚠️ '+LOADERR),1500)})}
 LOADED=loadTitres();
 /* touche Entrée dans la saisie de l'année = bouton Valider juste à côté */
