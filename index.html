@@ -96,7 +96,7 @@ body.tvb .w{max-width:none;padding:1.5vw 2vw}body.tvb .cr{display:none}
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='2.0.0';
+const VERSION='2.0.1';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -552,11 +552,12 @@ const fzKey=s=>nrm(s).replace(/\s+/g,'').replace(/ph/g,'f').replace(/y/g,'i').re
 /* la réponse doit couvrir des mots entiers de la phrase (« Queen » ne se cache pas dans « Keen'V ») */
 function apxSub(P,T,st,en){const m=P.length,n=T.length;if(!n)return m;let a=new Array(n+1),b=new Array(n+1);for(let j=0;j<=n;j++)a[j]=st.has(j)?0:99;for(let i=1;i<=m;i++){b[0]=st.has(0)?i:99;for(let j=1;j<=n;j++)b[j]=Math.min(a[j]+1,b[j-1]+1,a[j-1]+(P[i-1]==T[j-1]?0:1));[a,b]=[b,a]}let r=99;en.forEach(j=>{if(a[j]<r)r=a[j]});return r}
 const fzW=s=>nrm(s).split(' ').map(fzKey).filter(Boolean);
-function fzHit(txt,cands){const w=fzW(txt),T=w.join(''),st=new Set([0]),en=new Set();let p=0;w.forEach(x=>{p+=x.length;en.add(p);st.add(p)});const W=' '+nrm(txt)+' ';return cands.some(c=>{const P=fzW(c).join('');if(!P)return false;if(P.length<=3)return W.includes(' '+nrm(c)+' ')||T==P;return apxSub(P,T,st,en)<=(P.length<=4?0:P.length<=7?1:Math.floor(P.length/4))})}
+function fzHit(txt,cands){const w=fzW(txt),T=w.join(''),st=new Set([0]),en=new Set();let p=0;w.forEach(x=>{p+=x.length;en.add(p);st.add(p)});const W=' '+nrm(txt)+' ';return cands.some(c=>{const P=fzW(c).join('');if(!P)return false;if(P.length<=3)return W.includes(' '+nrm(c)+' ')||T==P||(P.length>=2&&apxSub(P,T,st,en)==0);return apxSub(P,T,st,en)<=(P.length<=4?0:P.length<=7?1:Math.floor(P.length/4))})}
 const sansArt=x=>x.replace(/^\s*(the|les|le|la|l')\s*/i,'');
 function artCands(a){a=String(a||'');const m=a.split(/\s+(?:feat\.?|ft\.?|featuring|with|avec|x|vs\.?)\s+/i)[0];return [...new Set([a,m,sansArt(a),sansArt(m)])]}
-/* « Film - Chanson » : le film seul ou la chanson seule comptent comme titre */
-function titCands(t){t=String(t||'');const p=t.replace(/[\(\[][^\)\]]*[\)\]]/g,' '),d=p.split(/\s+-\s+/);return [...new Set([t,p,...d,sansArt(p),...d.map(sansArt)])]}
+/* « Film - Chanson » : le film seul ou la chanson seule comptent comme titre ; le texte entre parenthèses aussi
+   (titre français ou nom du film, ex. « Despicable Me (Moi, moche et méchant) »), sauf « Theme », « générique »… */
+function titCands(t){t=String(t||'');const p=t.replace(/[\(\[][^\)\]]*[\)\]]/g,' '),d=p.split(/\s+-\s+/),q=(t.match(/[\(\[][^\)\]]*[\)\]]/g)||[]).map(x=>x.slice(1,-1).trim()).filter(x=>x&&!/^((main|love|feather)\s+)?(theme|title)$|^g[ée]n[ée]rique|^bo$/i.test(x));return [...new Set([t,p,...d,sansArt(p),...d.map(sansArt),...q,...q.map(sansArt)])]}
 /* année dite : « 1984 », « 84 », « mille neuf cent quatre-vingt-quatre », « dix-neuf cent quatre-vingt-quatre », « deux mille dix »… */
 function yearOf(s){const t=nrm(s),m=t.match(/\b(1[89]|20)\s?(\d\d)\b/);if(m)return +(m[1]+m[2]);
 const W={zero:0,un:1,une:1,deux:2,trois:3,quatre:4,cinq:5,six:6,sept:7,huit:8,neuf:9,dix:10,onze:11,douze:12,treize:13,quatorze:14,quinze:15,seize:16,vingt:20,vingts:20,trente:30,quarante:40,cinquante:50,soixante:60,septante:70,huitante:80,octante:80,nonante:90};
