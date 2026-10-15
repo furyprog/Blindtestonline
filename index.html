@@ -96,7 +96,7 @@ body.tvb .w{max-width:none;padding:1.5vw 2vw}body.tvb .cr{display:none}
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='2.0.13';
+const VERSION='2.0.14';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -321,7 +321,9 @@ let OPEN=Object.assign({code:true,filtres:false,params:false},JSON.parse(localSt
 const setSort=v=>{SORT=v;localStorage.setItem('bt_sort',v);hostUI()};
 function codeToggle(o){OPEN.code=o;localStorage.setItem('bt_open',JSON.stringify(OPEN));const d=document.querySelector('details[ontoggle*="code"]');if(d)d.open=o}
 function collapseAll(){Object.keys(OPEN).forEach(k=>OPEN[k]=false);localStorage.setItem('bt_open',JSON.stringify(OPEN));document.querySelectorAll('#app details').forEach(d=>d.open=false)}
-const tgl=(k,el)=>{OPEN[k]=el.open;localStorage.setItem('bt_open',JSON.stringify(OPEN))};
+const tgl=(k,el)=>{OPEN[k]=el.open;localStorage.setItem('bt_open',JSON.stringify(OPEN))}
+/* dès qu'un titre se joue, les menus Filtres et Paramètres se replient (on peut les rouvrir) */
+function fold(){['filtres','params','tparams'].forEach(k=>OPEN[k]=false);try{localStorage.setItem('bt_open',JSON.stringify(OPEN))}catch(_){}document.querySelectorAll('details').forEach(d=>{if(/tgl\('(filtres|params|tparams)'/.test(d.getAttribute('ontoggle')||''))d.open=false})};
 function sortedDB(){const a=DB.map((t,i)=>[t,i]),c=(x,y)=>String(x||'').localeCompare(String(y||''),'fr',{sensitivity:'base'}),ar=(x,y)=>c(x[0].artist,y[0].artist)||c(x[0].title,y[0].title),st=t=>!t.base?0:1;
 const f={artiste:ar,titre:(x,y)=>c(x[0].title,y[0].title)||c(x[0].artist,y[0].artist),annee:(x,y)=>x[0].year-y[0].year||ar(x,y),'annee-d':(x,y)=>y[0].year-x[0].year||ar(x,y),genre:(x,y)=>c(x[0].genre,y[0].genre)||ar(x,y),langue:(x,y)=>c(x[0].langue,y[0].langue)||ar(x,y),statut:(x,y)=>st(x[0])-st(y[0])||ar(x,y)}[SORT];return f?a.sort(f):a}
 function editTrack(i){editIdx=i;hostUI();setTimeout(()=>{const c=$('fu')&&$('fu').closest('.card');if(c)c.scrollIntoView({block:'start'});if($('fa'))$('fa').focus({preventScroll:true})},50)}
@@ -392,7 +394,7 @@ function arm(t){if(!['idle','ready','done'].includes(g.phase))return;if(!t&&g.ph
 if(!DB.length){rmIframe();g.phase='idle';g.msg="Ajoute des titres dans l'onglet Base.";upd();return}
 t=t||pickRnd();if(!t){rmIframe();g.phase='idle';g.msg="Aucun titre ne correspond aux filtres choisis.";upd();return}
 g.next=t;g.lis=0;g.phase='ready';g.msg='👆 Prêt : touche le carré noir pour lancer la musique';upd();mk(t,RS(t),go)}
-function go(){if(g.phase!='ready'||!g.next)return;if(BL)window.removeEventListener('blur',BL);g.cur=g.next;gcT('jeu',g.cur);g.fnd=0;g.fl=0;g.played.push(g.cur.id);g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.seen=false;g.lastPen=null;g.rd={};g.rp={};g.sp={};g.bt={};g.phase='play';g.msg='🎧 Buzz !';g.n=(g.n||0)+1;g.bo=!!(SET.bonus&&g.n%SET.bonus==0)&&YM()!=2;g.va=null;g.lis=0;g.off=($('sf')&&$('sf')._off)||0;g.rem=SET.maxD*1000;g.pos=0;g.t1=Date.now()+MUS_GR;g.tk='mus';g.tEnd=g.t1+g.rem;g.exp=false;upd();tm=setTimeout(endRound,g.rem+MUS_GR)}
+function go(){if(g.phase!='ready'||!g.next)return;fold();if(BL)window.removeEventListener('blur',BL);g.cur=g.next;gcT('jeu',g.cur);g.fnd=0;g.fl=0;g.played.push(g.cur.id);g.buzz=[];g.active=-1;g.j={};g.reveal=null;g.seen=false;g.lastPen=null;g.rd={};g.rp={};g.sp={};g.bt={};g.phase='play';g.msg='🎧 Buzz !';g.n=(g.n||0)+1;g.bo=!!(SET.bonus&&g.n%SET.bonus==0)&&YM()!=2;g.va=null;g.lis=0;g.off=($('sf')&&$('sf')._off)||0;g.rem=SET.maxD*1000;g.pos=0;g.t1=Date.now()+MUS_GR;g.tk='mus';g.tEnd=g.t1+g.rem;g.exp=false;upd();tm=setTimeout(endRound,g.rem+MUS_GR)}
 function pauseBy(n){clearTimeout(tm);const el=g.pf?0:Math.max(0,Date.now()-g.t1);g.pf=false;g.rem-=el;g.pos+=el/1000;rmIframe();(g.bt=g.bt||{})[n]=g.pos;g.buzz.push(n);g.active=g.buzz.length-1;g.j={};g.phase='judge';g.msg='🎤 Au tour de '+n;startAns();upd()}
 function resume(){if(g.phase!='wait')return;if(BL)window.removeEventListener('blur',BL);g.phase='play';g.msg='🎧 Buzz !';g.t1=Date.now()+MUS_GR;g.tk='mus';g.tEnd=g.t1+g.rem;g.exp=false;upd();tm=setTimeout(endRound,g.rem+MUS_GR)}
 function endRound(){clearTimeout(tm);rmIframe();if(g.cur&&g.phase=='play')rev()}
@@ -753,7 +755,7 @@ let p=b.filter(x=>!TR.played.includes(x.id));if(!p.length){TR.played=[];p=b}cons
 function trainOther(){const o=rndOff(TR.cur);mk(TR.cur,o==null?45:o,()=>{if(BL)window.removeEventListener('blur',BL)},true);maskRefresh();const w=$('ytw');if(w&&w.scrollIntoView)w.scrollIntoView({block:'center',behavior:'smooth'})}
 function trainReplay(){mk(TR.cur,TR.off||0,()=>{if(BL)window.removeEventListener('blur',BL)},true);maskRefresh();const w=$('ytw');if(w&&w.scrollIntoView)w.scrollIntoView({block:'center',behavior:'smooth'})}
 function trainFinal(){if(TR.defi){defiFinal();return}gc('solo-serie-finie','Série solo terminée');TR.phase='final';rmIframe();TR.prev=TR.len?brGet(bkey()):null;TR.newRec=!!TR.len&&(!TR.prev||TR.score>TR.prev.pts);if(TR.newRec)brSet(bkey(),{pts:TR.score,date:new Date().toLocaleDateString('fr-FR')});snd(TR.newRec?'win':'ok');trainRender()}
-function trainGo(){if(TR.phase!='ready')return;if(BL)window.removeEventListener('blur',BL);gcT('solo',TR.cur);if(TR.defi)defiSave(TR.n);TR.phase='play';TR.off=TR.defi?0:(($('sf')&&$('sf')._off)||0);TR.end=Date.now()+SET.maxD*1000+MUS_GR;TR.lt=0;trainRender()}
+function trainGo(){if(TR.phase!='ready')return;fold();if(BL)window.removeEventListener('blur',BL);gcT('solo',TR.cur);if(TR.defi)defiSave(TR.n);TR.phase='play';TR.off=TR.defi?0:(($('sf')&&$('sf')._off)||0);TR.end=Date.now()+SET.maxD*1000+MUS_GR;TR.lt=0;trainRender()}
 function trainBuzz(){if(TR.phase!='play')return;if(TR.defi)TR.fast=SET.maxD*1000-((TR.pf?TR.rem:TR.end-Date.now()))<=DEFI_FAST*1000;rmIframe();TR.bz++;TR.phase='think';TR.val=!TR.defi&&SET.sval==1;TR.xp=0;TR.end=Date.now()+SET.tRep*1000;TR.lt=0;snd('buzz');vib(80);trainRender()}
 /* entraînement : la réponse dictée (ou écrite) est vérifiée par l'appli, comme en mode sans animateur ; plus d'auto-correction */
 function trainVoc(k,alts){const t=TR.cur;if(!TR.on||!t)return;alts=(alts||[]).filter(Boolean);
