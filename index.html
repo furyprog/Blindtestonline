@@ -96,7 +96,7 @@ body.tvb .w{max-width:none;padding:1.5vw 2vw}body.tvb .cr{display:none}
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='2.0.1';
+const VERSION='2.0.2';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -552,8 +552,10 @@ const fzKey=s=>nrm(s).replace(/\s+/g,'').replace(/ph/g,'f').replace(/y/g,'i').re
 /* la réponse doit couvrir des mots entiers de la phrase (« Queen » ne se cache pas dans « Keen'V ») */
 function apxSub(P,T,st,en){const m=P.length,n=T.length;if(!n)return m;let a=new Array(n+1),b=new Array(n+1);for(let j=0;j<=n;j++)a[j]=st.has(j)?0:99;for(let i=1;i<=m;i++){b[0]=st.has(0)?i:99;for(let j=1;j<=n;j++)b[j]=Math.min(a[j]+1,b[j-1]+1,a[j-1]+(P[i-1]==T[j-1]?0:1));[a,b]=[b,a]}let r=99;en.forEach(j=>{if(a[j]<r)r=a[j]});return r}
 const fzW=s=>nrm(s).split(' ').map(fzKey).filter(Boolean);
-function fzHit(txt,cands){const w=fzW(txt),T=w.join(''),st=new Set([0]),en=new Set();let p=0;w.forEach(x=>{p+=x.length;en.add(p);st.add(p)});const W=' '+nrm(txt)+' ';return cands.some(c=>{const P=fzW(c).join('');if(!P)return false;if(P.length<=3)return W.includes(' '+nrm(c)+' ')||T==P||(P.length>=2&&apxSub(P,T,st,en)==0);return apxSub(P,T,st,en)<=(P.length<=4?0:P.length<=7?1:Math.floor(P.length/4))})}
-const sansArt=x=>x.replace(/^\s*(the|les|le|la|l')\s*/i,'');
+function fzHit(txt,cands){const w=fzW(txt),T=w.join(''),st=new Set([0]),en=new Set();let p=0;w.forEach(x=>{p+=x.length;en.add(p);st.add(p)});const W=' '+nrm(txt)+' ';return cands.some(c=>{const P=fzW(c).join('');if(!P)return false;if(P.length<=3)return W.includes(' '+nrm(c)+' ')||T==P||(P.length>=2&&apxSub(P,T,st,en)==0);if(apxSub(P,T,st,en)<=(P.length<=4?0:P.length<=7?1:Math.floor(P.length/4)))return true;
+/* 2e essai sur les consonnes seules (la dictée se trompe surtout de voyelles : « water shell » pour « whiter shade ») */
+const Q=P.replace(/[aeiou]/g,'');if(Q.length<6)return false;const w2=w.map(x=>x.replace(/[aeiou]/g,'')),T2=w2.join(''),s2=new Set([0]),e2=new Set();let p2=0;w2.forEach(x=>{p2+=x.length;e2.add(p2);s2.add(p2)});return apxSub(Q,T2,s2,e2)<=Math.floor(Q.length/6)})}
+const sansArt=x=>x.replace(/^\s*(the|an?|les|le|la|l')\s+|^\s*l'\s*/i,'');
 function artCands(a){a=String(a||'');const m=a.split(/\s+(?:feat\.?|ft\.?|featuring|with|avec|x|vs\.?)\s+/i)[0];return [...new Set([a,m,sansArt(a),sansArt(m)])]}
 /* « Film - Chanson » : le film seul ou la chanson seule comptent comme titre ; le texte entre parenthèses aussi
    (titre français ou nom du film, ex. « Despicable Me (Moi, moche et méchant) »), sauf « Theme », « générique »… */
