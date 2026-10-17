@@ -96,7 +96,7 @@ body.tvb .w{max-width:none;padding:1.5vw 2vw}body.tvb .cr{display:none}
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // ===== NUMÉRO DE VERSION : à faire évoluer à chaque mise à jour de ce fichier (format x.y.z) =====
-const VERSION='2.0.20';
+const VERSION='2.0.22';
 // ====================================================================================================
 {const v=document.getElementById('ver');if(v)v.textContent=' - V'+VERSION}
 const $=id=>document.getElementById(id),A=$('app');
@@ -592,6 +592,8 @@ function fzHit1(txt,cands){const w=fzW(txt),T=w.join(''),st=new Set([0]),en=new 
 /* 2e essai sur les consonnes seules (la dictée se trompe surtout de voyelles : « water shell » pour « whiter shade ») */
 const Q=P.replace(/[aeiou]/g,'');if(Q.length<6)return false;const w2=w.map(x=>x.replace(/[aeiou]/g,'')),T2=w2.join(''),s2=new Set([0]),e2=new Set();let p2=0;w2.forEach(x=>{p2+=x.length;e2.add(p2);s2.add(p2)});return apxSub(Q,T2,s2,e2)<=Math.floor(Q.length/6)})}
 const sansArt=x=>x.replace(/^\s*(the|an?|les|le|la|l')\s+|^\s*l'\s*/i,'');
+/* plusieurs artistes (« Gims et Morad », « Simon & Garfunkel », « Pitbull feat. Ne-Yo ») : les nommer tous, dans n'importe quel ordre et sans le « et », compte aussi */
+function artHit(x,a){if(fzHit(x,artCands(a)))return true;const ps=String(a||'').split(/\s*(?:,|&|\+|\s(?:et|and|x|feat\.?|ft\.?|featuring|with|avec|vs\.?)\s)\s*/i).map(y=>y.trim()).filter(Boolean);return ps.length>1&&ps.every(y=>fzHit(x,[y,sansArt(y)]))}
 function artCands(a){a=String(a||'');const m=a.split(/\s+(?:feat\.?|ft\.?|featuring|with|avec|x|vs\.?)\s+/i)[0];return [...new Set([a,m,sansArt(a),sansArt(m)])]}
 /* « Film - Chanson » : le film seul ou la chanson seule comptent comme titre ; le texte entre parenthèses aussi
    (titre français ou nom du film, ex. « Despicable Me (Moi, moche et méchant) »), sauf « Theme », « générique »… */
@@ -603,7 +605,7 @@ let tot=0,cur=0,any=0;for(const w of t.split(' ')){if(w=='et'&&any)continue;if(w
 if(!any)return null;let y=tot+cur;if(y<100)y+=y>=30?1900:2000;return y>=1900&&y<=2100?y:null}
 /* côté hôte : réponse reçue du joueur qui a la main (ou de l'hôte lui-même) */
 function vocIn(n,m){if(!g||g.phase!='judge'||g.buzz[g.active]!=n||!g.cur)return;if(m.rn!=null&&(m.rn!=g.n||m.ac!=g.active))return;const al=(Array.isArray(m.alts)?m.alts:[]).map(x=>String(x||'').slice(0,200).trim()).filter(Boolean).slice(0,5),yr=g.j.a||g.j.t;if(!al.length)return;
-if(m.k=='r'&&!yr){let a=0,t=0;al.forEach(x=>{if(fzHit(x,artCands(g.cur.artist)))a=1;if(fzHit(x,titCands(g.cur.title)))t=1});g.va={n,txt:al[0],a,t,k:'r'};clearTimeout(vocT);
+if(m.k=='r'&&!yr){let a=0,t=0;al.forEach(x=>{if(artHit(x,g.cur.artist))a=1;if(fzHit(x,titCands(g.cur.title)))t=1});g.va={n,txt:al[0],a,t,k:'r'};clearTimeout(vocT);
 if(!a&&!t){snd('gong');g.exp=false;wrong();return}if(a)judge('a');if(t)judge('t');if(g.phase=='judge'&&YM()==2)rev();return}
 if(m.k=='y'&&yr&&YM()!=2&&g.tk=='yr'){let y=null;for(const x of al){y=yearOf(x);if(y)break}const d=y?Math.abs(y-g.cur.year):99;clearTimeout(vocT);g.va=Object.assign({},g.va,{k:'y',ytx:al[0],y,yp:(d==0?2:d<=SET.yd?1:0)*(g.bo?2:1)});yv=y?String(y):'';yearEnd()}}
 function vocLate(k){if(!g||g.phase!='judge'||g.n+'|'+g.active+'|'+g.tk!=k)return;const n=g.buzz[g.active];
@@ -644,11 +646,13 @@ function defiPseudoOk(){const i=$('dpn'),v=i?i.value.trim().replace(/\s+/g,' '):
 function defiStart(p){const st=defiGet();if(st&&st.done){trainStop();defiDone(st);return}if(!st&&!p){defiAsk();return}
 trainStop();A.innerHTML='<img class="logo sm" src="BuzzHit.png" alt="BuzzHit"><div class="card" id="dfl"><p class="m" style="text-align:center">🎯 Préparation du défi du jour…</p></div>';
 defiPool().then(L=>{if(!$('dfl'))return;const d=st?st.d:defiDay();/* un titre ajouté avec « defi »: "AAAA-MM-JJ" n'entre dans le défi qu'à partir de ce jour : ajouter des titres en journée ne change pas le défi du jour */L=L.filter(t=>!t.defi||String(t.defi)<=d);const list=defiChoices(defiPick(L,d),L,d);if(list.length<DEFI_N){toast('⚠️ Base de titres indisponible, réessaie plus tard');trainStart();return}
-const s=st||{d,p,n:0,score:0,fa:0,ft:0,fy:0,bz:0,ms:0,fb:0,g:[]};if(s.open!=null){s.g[s.open]=0;s.n=s.open+1;s.ms=(s.ms||0)+1;s.open=null;defiPut(s)}
+const s=st||{d,p,n:0,score:0,fa:0,ft:0,fy:0,bz:0,ms:0,fb:0,g:[]};if(s.open!=null){s.g[s.open]=0;(s.det=s.det||[])[s.open]=defiDet(list[s.open],{m:1});s.n=s.open+1;s.ms=(s.ms||0)+1;s.open=null;defiPut(s)}
 if(!st){gc('defi-demarre','Défi du jour démarré');defiPut(s)}
 TR={on:true,defi:1,dd:d,dp:s.p||'',list,played:[],iv:setInterval(trainTick,250),len:DEFI_N,sv:Object.fromEntries(Object.keys(DEFI_SET).map(k=>[k,SET[k]]))};Object.assign(SET,DEFI_SET);trainReset();
-Object.assign(TR,{n:s.n,score:s.score,fa:s.fa,ft:s.ft,fy:s.fy,bz:s.bz,ms:s.ms||0,fb:s.fb||0,g:s.g||[]});keepAwake=true;wl(true);trainUI();trainNext()})}
-const defiState=()=>({d:TR.dd,p:TR.dp,n:TR.n,score:TR.score,fa:TR.fa,ft:TR.ft,fy:TR.fy,bz:TR.bz,ms:TR.ms,fb:TR.fb||0,g:TR.g});
+Object.assign(TR,{n:s.n,score:s.score,fa:s.fa,ft:s.ft,fy:s.fy,bz:s.bz,ms:s.ms||0,fb:s.fb||0,g:s.g||[],det:s.det||[]});keepAwake=true;wl(true);trainUI();trainNext()})}
+const defiState=()=>({d:TR.dd,p:TR.dp,n:TR.n,score:TR.score,fa:TR.fa,ft:TR.ft,fy:TR.fy,bz:TR.bz,ms:TR.ms,fb:TR.fb||0,g:TR.g,det:TR.det||[]});
+/* détail d'une réponse du défi, envoyé avec le résultat pour que l'éditeur puisse vérifier et corriger une réclamation */
+const defiDet=(c,o)=>Object.assign({ar:String(c&&c.artist||'').slice(0,120),ti:String(c&&c.title||'').slice(0,120),an:c&&+c.year||0,a:0,t:0,yp:0,fz:0,m:0,s:'',ys:''},o);
 function defiSave(open){if(!TR.defi)return;const s=defiState();s.open=open==null?null:open;if(TR.n>=DEFI_N)s.done=1;defiPut(s)}
 function defiFinal(){TR.phase='final';rmIframe();defiSave();const b=defiBest();TR.prev=b;TR.newRec=!b||TR.score>b.pts;if(TR.newRec)try{localStorage.setItem('bt_defibest',JSON.stringify({pts:TR.score,date:defiFr(TR.dd)}))}catch(_){}
 gc('defi-fini','Défi du jour terminé');rapJoue();resEnvoi();snd(TR.newRec?'win':'ok');trainRender()}
@@ -762,17 +766,17 @@ function trainGo(){if(TR.phase!='ready')return;fold();if(BL)window.removeEventLi
 function trainBuzz(){if(TR.phase!='play')return;if(TR.defi)TR.fast=SET.maxD*1000-((TR.pf?TR.rem:TR.end-Date.now()))<=DEFI_FAST*1000;rmIframe();TR.bz++;TR.phase='think';TR.val=!TR.defi&&SET.sval==1;TR.xp=0;TR.end=Date.now()+SET.tRep*1000;TR.lt=0;snd('buzz');vib(80);trainRender()}
 /* entraînement : la réponse dictée (ou écrite) est vérifiée par l'appli, comme en mode sans animateur ; plus d'auto-correction */
 function trainVoc(k,alts){const t=TR.cur;if(!TR.on||!t)return;alts=(alts||[]).filter(Boolean);
-if(k=='r'&&TR.phase=='think'){TR.a=alts.some(x=>fzHit(x,artCands(t.artist)));TR.t=alts.some(x=>fzHit(x,titCands(t.title)));TR.said=alts[0]||'';TR.ysaid='';TR.xp=0;TR.lt=0;if((TR.a||TR.t)&&SET.ymode!=2){TR.phase='reveal';TR.end=Date.now()+SET.tAnn*1000;TR.lk=0;trainRender()}else{TR.phase='reveal';trainResult(0)}return}
+if(k=='r'&&TR.phase=='think'){TR.a=alts.some(x=>artHit(x,t.artist));TR.t=alts.some(x=>fzHit(x,titCands(t.title)));TR.said=alts[0]||'';TR.ysaid='';TR.xp=0;TR.lt=0;if((TR.a||TR.t)&&SET.ymode!=2){TR.phase='reveal';TR.end=Date.now()+SET.tAnn*1000;TR.lk=0;trainRender()}else{TR.phase='reveal';trainResult(0)}return}
 if(k=='y'&&TR.phase=='reveal'){let y=0;for(const x of alts){y=yearOf(x)||0;if(y)break}TR.ysaid=alts[0]||'';trainResult(y)}}
 /* temps écoulé : ce qui a été dit est envoyé ; sans rien, la réponse compte comme non trouvée */
 function trainExpV(){if(TR.xp)return;TR.xp=1;snd('gong');const n=TR.n,ph=TR.phase;const kb=VO.kb;vAtExp();setTimeout(()=>{if(TR.on&&TR.n==n&&TR.phase==ph&&!VO.sent)trainVoc(ph=='think'?'r':'y',[])},kb?KB_GR*1000:2500)}
 function trainReveal(){if(TR.phase!='think')return;TR.phase='reveal';TR.a=false;TR.t=false;TR.said='';TR.ysaid='';TR.end=0;TR.lt=0;trainRender()}
-function trainMiss(){rmIframe();if(TR.defi)TR.g[TR.n]=0;TR.n++;TR.ms++;TR.pts=0;TR.phase='miss';defiSave();trainRender()}
+function trainMiss(){rmIframe();if(TR.defi){TR.g[TR.n]=0;(TR.det=TR.det||[])[TR.n]=defiDet(TR.cur,{m:1})}TR.n++;TR.ms++;TR.pts=0;TR.phase='miss';defiSave();trainRender()}
 /* l'année n'est possible qu'après avoir trouvé l'artiste ou le titre ; son chrono démarre à cet instant précis */
 function trainTog(k){const had=TR.a||TR.t;TR[k]=!TR[k];if(SET.ymode!=2){const has=TR.a||TR.t;if(!had&&has){TR.end=Date.now()+SET.tAnn*1000;TR.lt=0;TR.lk=0}else if(had&&!has)TR.end=0}trainYr()}
 function trainYr(){const on=!!(TR.a||TR.t);['a','t'].forEach(k=>{const el=$('tg'+k);if(el)el.className=TR[k]?'p':''});const r=$('tyr'),n=$('tyn'),v=$('tvn');if(r)r.style.display=on?'':'none';if(n)n.style.display=on?'none':'';if(v)v.style.display=on?'none':''}
 function trainResult(yy){if(TR.phase!='reveal')return;const i=$('tyi'),y=yy!=null?yy:(i?+i.value||0:0);let yp=0;const okA=TR.a||TR.t;if(y&&okA){const d=Math.abs(y-TR.cur.year);yp=d==0?2:d<=SET.yd?1:0}
-TR.y=okA?y:0;TR.yp=yp;TR.fp=TR.defi&&TR.fast&&okA?1:0;if(TR.fp)TR.fb=(TR.fb||0)+1;TR.pts=(TR.a?1:0)+(TR.t?1:0)+yp+TR.fp;TR.score+=TR.pts;if(TR.defi)TR.g[TR.n]=TR.pts;TR.n++;if(TR.a)TR.fa++;if(TR.t)TR.ft++;if(yp==2)TR.fy++;TR.phase='result';if(TR.a||TR.t)gcT('solo-trouve',TR.cur);defiSave();if(TR.pts)snd('ok');trainRender()}
+TR.y=okA?y:0;TR.yp=yp;TR.fp=TR.defi&&TR.fast&&okA?1:0;if(TR.fp)TR.fb=(TR.fb||0)+1;TR.pts=(TR.a?1:0)+(TR.t?1:0)+yp+TR.fp;TR.score+=TR.pts;if(TR.defi){TR.g[TR.n]=TR.pts;(TR.det=TR.det||[])[TR.n]=defiDet(TR.cur,{a:TR.a?1:0,t:TR.t?1:0,yp,fz:TR.fast?1:0,s:String(TR.said||'').slice(0,100),ys:String(TR.ysaid||'').slice(0,40)})}TR.n++;if(TR.a)TR.fa++;if(TR.t)TR.ft++;if(yp==2)TR.fy++;TR.phase='result';if(TR.a||TR.t)gcT('solo-trouve',TR.cur);defiSave();if(TR.pts)snd('ok');trainRender()}
 function trainTick(){if(!TR.on||!['play','think','reveal'].includes(TR.phase))return;if(TR.pf&&TR.phase=='play')TR.end=Date.now()+TR.rem;if(TR.phase=='reveal'&&(SET.ymode==2||!(TR.a||TR.t))){const e2=$('tcd');if(e2)e2.textContent='';return}const p=TR.phase,l=TR.end-Date.now(),el=$('tcd');
 if(el)el.textContent=(p=='play'?'🎵 Écoute : ':p=='think'?'⏱ Réponse : ':'📅 Année : ')+Math.max(0,p=='play'?Math.min(SET.maxD,Math.ceil(l/1000)):Math.ceil(l/1000))+' s';
 if(p!='play'){const q=Math.ceil(l/1000);if(q<=5&&q>0&&q!==TR.lt){TR.lt=q;snd('tick')}}
@@ -888,7 +892,7 @@ o.innerHTML=`<div class="box" role="dialog" aria-label="Monte le son"><div style
 /* résultat du défi (pseudo + score) envoyé pour le podium du lendemain ; renvoyé au prochain lancement si le réseau manquait */
 const resId=()=>{try{let i=localStorage.getItem('bt_did');if(!i){i=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join('');localStorage.setItem('bt_did',i)}return i}catch(_){return ''}};
 function resEnvoi(){if(!RAPPEL_URL)return;let s=null;try{s=JSON.parse(localStorage.getItem('bt_defi')||'null');if(!s||!s.done||!s.p||localStorage.getItem('bt_defienv')===s.d)return}catch(_){return}const id=resId();if(!id)return;
-fetch(RAPPEL_URL+'/resultat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({d:s.d,id,p:String(s.p).slice(0,16),score:s.score,fa:s.fa,ft:s.ft,fy:s.fy,fb:s.fb||0})}).then(r=>{if(r.ok||r.status===400)try{localStorage.setItem('bt_defienv',s.d)}catch(_){}}).catch(()=>{})}
+fetch(RAPPEL_URL+'/resultat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({d:s.d,id,p:String(s.p).slice(0,16),score:s.score,fa:s.fa,ft:s.ft,fy:s.fy,fb:s.fb||0,det:(s.det||[]).slice(0,10)})}).then(r=>{if(r.ok||r.status===400)try{localStorage.setItem('bt_defienv',s.d)}catch(_){}}).catch(()=>{})}
 /* le défi du jour est fini : pas de rappel aujourd'hui */
 function rapJoue(){if(!rapOk()||!rapActif())return;rapAbo(false).then(sub=>sub&&rapPost('joue',sub.endpoint)).catch(()=>{})}
 /* « Actualiser l'application » efface l'abonnement du téléphone : il est refait sans rien demander au prochain lancement */
